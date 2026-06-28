@@ -5,9 +5,11 @@
     <title>Visor de Partidas</title>
     <style>
         body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
         th { background-color: #2e7d32; color: white; }
+        .disponible { color: green; font-weight: bold; }
+        .cerrada { color: gray; }
     </style>
 </head>
 <body>
@@ -24,25 +26,22 @@
                 const doc = parser.parseFromString(htmlTexto, 'text/html');
 
                 const bloques = doc.querySelectorAll('.gridviewestilocabecera');
-                let html = `<table><tr><th>Hora</th><th>Jugadores</th><th>Estado</th></tr>`;
+                let html = `<table><tr><th>Hora</th><th>Estado</th></tr>`;
 
                 bloques.forEach(cabecera => {
                     const tr = cabecera.closest('tr');
                     const hora = cabecera.innerText.match(/(\d{1,2}:\d{2})/)?.[0] || "---";
-                    
-                    // Solo intentamos leer jugadores si la fila no está marcada como cerrada
                     const estado = tr.innerText.includes('Cerrada') ? 'Cerrada' : 'Disponible';
                     
                     html += `<tr>
                         <td>${hora}</td>
-                        <td>${estado === 'Disponible' ? 'Esperando jugadores...' : '-'}</td>
-                        <td>${estado}</td>
+                        <td class="${estado.toLowerCase()}">${estado}</td>
                     </tr>`;
                 });
 
                 document.getElementById('tabla-resultado').innerHTML = html + `</table>`;
             } catch (err) {
-                document.getElementById('tabla-resultado').innerHTML = "Error al procesar los datos.";
+                document.getElementById('tabla-resultado').innerHTML = "Error de conexión. Intenta recargar.";
             }
         }
         procesar();
