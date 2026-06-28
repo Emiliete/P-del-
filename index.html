@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <title>Partidas - Padel Alboraya</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
-        .card { background: #fff; border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 8px; }
-        .header { font-weight: bold; border-bottom: 1px solid #eee; margin-bottom: 10px; padding-bottom: 5px; }
-        .jugadores { font-size: 0.9em; color: #444; }
+        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
+        .card { background: #fff; border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
+        .header { font-weight: bold; border-bottom: 1px solid #eee; margin-bottom: 10px; color: #2e7d32; }
+        .jugador { font-size: 0.9em; margin: 4px 0; }
     </style>
 </head>
 <body>
@@ -20,34 +20,37 @@
                 const html = await res.text();
                 const doc = new DOMParser().parseFromString(html, 'text/html');
 
-                // 1. Limpieza radical: Borramos todo lo que no sea contenido textual útil
-                doc.querySelectorAll('script, style, img, .participanteCuadro, [style]').forEach(e => e.remove());
+                // 1. LIMPIEZA AGRESIVA: Eliminamos del DOM todo lo que causa ruido
+                doc.querySelectorAll('script, style, link, img, .btn, .categoria, [style]').forEach(e => e.remove());
 
-                const filas = doc.querySelectorAll('tr');
+                const filas = doc.querySelectorAll('tr, div[class*="pista"]');
                 let htmlResultado = '';
 
-                filas.forEach(tr => {
-                    const texto = tr.innerText.trim();
-                    // Solo procesamos filas que contengan una hora y la palabra "Pista"
-                    if (/\d{1,2}:\d{2}/.test(texto) && texto.includes('Pista')) {
-                        // Limpiamos líneas de texto descartando cualquier resto de código o estilo
+                filas.forEach(el => {
+                    const texto = el.innerText.trim();
+                    
+                    // Solo si la fila tiene datos reales (hora + Pista)
+                    if (texto.includes('Pista') && /\d{1,2}:\d{2}/.test(texto)) {
+                        
+                        // Separamos las líneas y eliminamos las que contienen basura técnica
                         const lineas = texto.split('\n')
                             .map(l => l.trim())
                             .filter(l => l.length > 3 && 
                                          !l.includes('resize') && 
-                                         !l.includes('max-width') && 
+                                         !l.includes('max-width') &&
+                                         !l.includes('margin') &&
                                          !l.includes('Eq.'));
 
                         if (lineas.length > 0) {
                             htmlResultado += `<div class="card">
                                 <div class="header">${lineas[0]}</div>
-                                <div class="jugadores">`;
-                            lineas.slice(1).forEach(l => htmlResultado += `<div>${l}</div>`);
-                            htmlResultado += `</div></div>`;
+                                ${lineas.slice(1).map(l => `<div class="jugador">${l}</div>`).join('')}
+                            </div>`;
                         }
                     }
                 });
-                document.getElementById('app').innerHTML = htmlResultado || "No se encontraron partidas.";
+                
+                document.getElementById('app').innerHTML = htmlResultado || "No hay partidas.";
             } catch (e) {
                 document.getElementById('app').innerHTML = "Error al conectar.";
             }
