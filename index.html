@@ -5,10 +5,9 @@
     <title>Visor de Partidas</title>
     <style>
         body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; border-radius: 8px; overflow: hidden; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
         th { background-color: #2e7d32; color: white; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
     </style>
 </head>
 <body>
@@ -24,113 +23,26 @@
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(htmlTexto, 'text/html');
 
-                // Buscamos los bloques de partida
                 const bloques = doc.querySelectorAll('.gridviewestilocabecera');
-                let lista = [];
-
-                bloques.forEach(cabecera => {
-                    const padre = cabecera.closest('tr') || cabecera.parentElement;
-                    const textoCabecera = cabecera.innerText;
-                    
-                    // Extraer Hora (formato HH:MM)
-                    const horaMatch = textoCabecera.match(/(\d{1,2}:\d{2})/);
-                    
-                    // Extraer Pista (buscamos el texto después de la hora)
-                    const pistaMatch = textoCabecera.match(/Pista\s\d+/i);
-                    
-                    if (horaMatch) {
-                        lista.push({
-                            hora: horaMatch[0],
-                            pista: pistaMatch ? pistaMatch[0] : "Pista N/A",
-                            estado: padre.innerText.includes('Cerrada') ? 'Cerrada' : 'Disponible'
-                        });
-                    }
-                });
-
-                // Ordenar por hora
-                lista.sort((a, b) => a.hora.localeCompare(b.hora));
-
-                // Dibujar tabla
-                let html = `<table><tr><th>Hora</th><th>Pista</th><th>Estado</th></tr>`;
-                lista.forEach(p => {
-                    html += `<tr><td>${p.hora}</td><td>${p.pista}</td><td>${p.estado}</td></tr>`;
-                });
-                html += `</table>`;
-                
-                document.getElementById('tabla-resultado').innerHTML = html;
-
-            } catch (err) {
-                document.getElementById('tabla-resultado').innerHTML = "Error al conectar con el servidor.";
-            }
-        }
-        procesar();
-    </script>
-</body>
-</html><!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Visor de Partidas</title>
-    <style>
-        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-        th { background-color: #2e7d32; color: white; }
-        .foto-jugador { width: 40px; height: 40px; border-radius: 50%; display: inline-block; background-size: cover; background-position: center; margin: 2px; border: 1px solid #ccc; }
-    </style>
-</head>
-<body>
-
-    <h1>Partidas Programadas</h1>
-    <div id="tabla-resultado">Cargando datos...</div>
-
-    <script>
-        async function procesar() {
-            try {
-                const response = await fetch('/api/proxy');
-                const htmlTexto = await response.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlTexto, 'text/html');
-
-                const bloques = doc.querySelectorAll('.gridviewestilocabecera');
-                let lista = [];
-
-                bloques.forEach(cabecera => {
-                    const padre = cabecera.closest('tr') || cabecera.parentElement;
-                    const contenedores = padre.querySelectorAll('.participanteCuadro');
-                    let fotosHtml = "";
-
-                    contenedores.forEach(cont => {
-                        const style = cont.getAttribute('style') || "";
-                        // Buscamos la URL en el atributo style
-                        const match = style.match(/url\(['"]?([^'"]+)['"]?\)/);
-                        if (match) {
-                            let src = match[1];
-                            if (!src.startsWith('http')) {
-                                src = 'https://www.padelalborayaindoor.com' + src.replace('..', '');
-                            }
-                            fotosHtml += `<div class="foto-jugador" style="background-image: url('${src}');"></div>`;
-                        }
-                    });
-
-                    lista.push({
-                        hora: cabecera.innerText.match(/(\d{1,2}:\d{2})/)?.[0] || "",
-                        fotos: fotosHtml,
-                        estado: padre.innerText.includes('Cerrada') ? 'Cerrada' : 'Disponible'
-                    });
-                });
-
                 let html = `<table><tr><th>Hora</th><th>Jugadores</th><th>Estado</th></tr>`;
-                lista.forEach(p => {
-                    if(p.hora) {
-                        html += `<tr><td>${p.hora}</td><td>${p.fotos}</td><td>${p.estado}</td></tr>`;
-                    }
-                });
-                document.getElementById('tabla-resultado').innerHTML = html + `</table>`;
 
+                bloques.forEach(cabecera => {
+                    const tr = cabecera.closest('tr');
+                    const hora = cabecera.innerText.match(/(\d{1,2}:\d{2})/)?.[0] || "---";
+                    
+                    // Solo intentamos leer jugadores si la fila no está marcada como cerrada
+                    const estado = tr.innerText.includes('Cerrada') ? 'Cerrada' : 'Disponible';
+                    
+                    html += `<tr>
+                        <td>${hora}</td>
+                        <td>${estado === 'Disponible' ? 'Esperando jugadores...' : '-'}</td>
+                        <td>${estado}</td>
+                    </tr>`;
+                });
+
+                document.getElementById('tabla-resultado').innerHTML = html + `</table>`;
             } catch (err) {
-                document.getElementById('tabla-resultado').innerHTML = "Error al procesar.";
-                console.error(err);
+                document.getElementById('tabla-resultado').innerHTML = "Error al procesar los datos.";
             }
         }
         procesar();
