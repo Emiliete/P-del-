@@ -4,116 +4,55 @@
     <meta charset="UTF-8">
     <title>Partidas Padel</title>
     <style>
-        body { font-family: sans-serif; background-color: #f4f4f9; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
         th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
         th { background-color: #2e7d32; color: white; }
-        .player-img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 5px; }
+        .avatar { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; margin-right: 5px; vertical-align: middle; }
         .completa { color: #d32f2f; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h2>Partidas Ordenadas por Hora</h2>
-    <div id="app">Cargando partidas...</div>
+    <h2>Partidas Programadas</h2>
+    <div id="app">Procesando datos...</div>
 
     <script>
         async function fetchMatches() {
             try {
-                // Aquí deberías colocar la lógica de tu fuente de datos
-                const res = await fetch('/api/proxy'); // O tu fuente local
-                const text = await res.text();
-                
-                // Procesamiento: Filtramos los bloques de pista
+                // Suponiendo que el HTML original está en la misma página o cargado vía proxy
+                const text = document.body.innerHTML; 
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(text, 'text/html');
-                const bloques = Array.from(doc.querySelectorAll('div')); // Ajusta al selector de tu contenedor
-
-                let tablaHtml = `<table>
-                    <tr><th>Hora</th><th>Pista</th><th>Jugadores</th><th>Estado</th></tr>`;
-
-                // Aquí iterarías sobre los bloques procesados
-                // Ejemplo de una fila:
-                tablaHtml += `<tr>
-                    <td>11:15</td>
-                    <td>1</td>
-                    <td><img src="url_foto_jugador.jpg" class="player-img"> Nombre Jugador</td>
-                    <td>Cerrada</td>
-                </tr>`;
-
-                tablaHtml += `</table>`;
-                document.getElementById('app').innerHTML = tablaHtml;
-            } catch (e) {
-                document.getElementById('app').innerHTML = "Error al cargar datos.";
-            }
-        }
-        fetchMatches();
-    </script>
-</body>
-</html>
-                // Aquí el código iteraría sobre los objetos extraídos y 
-                // construiría la fila incluyendo: 
-                // <img src="..." class="avatar">
                 
-                document.getElementById('app').innerHTML = html + "</table>";
-            } catch (e) { console.error(e); }
-        }
-        fetchMatches();
-    </script>
-</body>
-</html>
-                        contenido: match[3]
-                    });
-                }
+                let matches = [];
+                // Ajusta este selector según cómo detectes cada bloque de partida
+                const bloques = Array.from(doc.querySelectorAll('.bloque-partida')); 
 
-                // 2. Ordenar por minutos (hora) y luego por pista
+                bloques.forEach(bloque => {
+                    const hora = bloque.querySelector('.hora').innerText;
+                    const pista = parseInt(bloque.querySelector('.pista').innerText);
+                    const jugadoresHtml = bloque.querySelector('.jugadores-container').innerHTML;
+                    const esCompleta = bloque.innerText.includes('Completa');
+                    
+                    matches.push({
+                        hora: hora,
+                        minutos: parseInt(hora.split(':')[0]) * 60 + parseInt(hora.split(':')[1]),
+                        pista: pista,
+                        jugadoresHtml: jugadoresHtml,
+                        estado: esCompleta ? '<span class="completa">Completa</span>' : 'Disponible'
+                    });
+                });
+
                 matches.sort((a, b) => a.minutos - b.minutos || a.pista - b.pista);
 
-                // 3. Crear la tabla
-                let html = `<table><tr><th>Hora</th><th>Pista</th><th>Estado</th></tr>`;
+                let html = `<table><tr><th>Hora</th><th>Pista</th><th>Jugadores</th><th>Estado</th></tr>`;
                 matches.forEach(m => {
-                    let estado = m.contenido.includes('Completa') ? '<span class="completa">Completa</span>' : 'Disponible';
-                    html += `<tr><td>${m.hora}</td><td>${m.pista}</td><td>${estado}</td></tr>`;
+                    html += `<tr><td>${m.hora}</td><td>${m.pista}</td><td>${m.jugadoresHtml}</td><td>${m.estado}</td></tr>`;
                 });
                 html += `</table>`;
-                container.innerHTML = html;
-
-            } catch (e) { container.innerHTML = "Error al procesar los datos."; }
+                document.getElementById('app').innerHTML = html;
+            } catch (e) { document.getElementById('app').innerHTML = "Error al procesar."; }
         }
-        setInterval(fetchMatches, 20000);
-        fetchMatches();
-    </script>
-</body>
-</html>
-                        // Limpiamos los nombres de los jugadores
-                        let contenido = partes[i+1].split('No disponible')[0].split('Completa')[0];
-                        let jugadores = contenido.match(/\d+,\d{2}-[^<]+/g) || [];
-                        
-                        let htmlJugadores = jugadores.map(j => `<span class="jugador">${j}</span>`).join('');
-                        
-                        div.innerHTML = `<div class="pista-hora">${titulo}</div>
-                                         <div class="equipo">${htmlJugadores || 'Sin jugadores registrados'}</div>`;
-                        container.appendChild(div);
-                    });
-                }
-            } catch (e) { container.innerHTML = "Error al procesar."; }
-        }
-        setInterval(fetchMatches, 20000);
-        fetchMatches();
-    </script>
-</body>
-</html>
-                            const div = document.createElement('div');
-                            div.className = 'match-row';
-                            div.innerText = row.innerText.replace(/\s+/g, ' ').trim();
-                            container.appendChild(div);
-                        }
-                    });
-                });
-            } catch (e) {
-                document.getElementById('app').innerHTML = "Error al extraer la tabla.";
-            }
-        }
-        setInterval(fetchMatches, 20000);
         fetchMatches();
     </script>
 </body>
