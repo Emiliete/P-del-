@@ -2,48 +2,64 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Visor de Partidas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Partidas - Padel Alboraya</title>
     <style>
-        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; background: white; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; padding: 20px; color: #333; }
+        h1 { text-align: center; color: #2e7d32; }
+        table { width: 100%; max-width: 800px; margin: 20px auto; border-collapse: collapse; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
         th { background-color: #2e7d32; color: white; }
-        .jugador { font-size: 12px; margin: 2px; display: inline-block; }
+        .jugador { background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 4px; padding: 2px 6px; margin: 2px; font-size: 0.9em; display: inline-block; }
+        #resultado { text-align: center; }
     </style>
 </head>
 <body>
+
     <h1>Partidas Programadas</h1>
-    <div id="resultado">Cargando...</div>
+    <div id="resultado">Cargando partidas...</div>
 
     <script>
-        async function cargar() {
+        async function cargarPartidas() {
             try {
-                const res = await fetch('/api/proxy');
-                const html = await res.text();
-                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const response = await fetch('/api/proxy');
+                const htmlTexto = await response.text();
+                const doc = new DOMParser().parseFromString(htmlTexto, 'text/html');
                 const filas = doc.querySelectorAll('.gridviewestilocabecera');
                 
-                let tabla = '<table><tr><th>Hora</th><th>Jugadores</th></tr>';
+                let tablaHtml = `<table><tr><th>Hora</th><th>Jugadores</th></tr>`;
                 
-                filas.forEach(f => {
-                    const tr = f.closest('tr');
-                    const hora = f.innerText.match(/\d{1,2}:\d{2}/)?.[0] || "-";
-                    const partes = tr.querySelectorAll('.participanteCuadro');
-                    let nombres = "";
+                filas.forEach(cabecera => {
+                    const fila = cabecera.closest('tr');
+                    const horaMatch = cabecera.innerText.match(/\d{1,2}:\d{2}/);
                     
-                    partes.forEach(p => {
-                        nombres += `<span class="jugador">👤 ${p.title || 'Jugador'}</span> `;
-                    });
+                    if (horaMatch) {
+                        const hora = horaMatch[0];
+                        const celdasJugador = fila.querySelectorAll('.participanteCuadro');
+                        let nombres = [];
 
-                    tabla += `<tr><td>${hora}</td><td>${nombres || 'Libre'}</td></tr>`;
+                        celdasJugador.forEach(celda => {
+                            const nombre = celda.getAttribute('title');
+                            // Filtramos: solo añadimos si tiene nombre y no es texto genérico
+                            if (nombre && nombre.trim() !== "" && nombre.toLowerCase() !== "seleccionar") {
+                                nombres.push(`<span class="jugador">👤 ${nombre}</span>`);
+                            }
+                        });
+
+                        tablaHtml += `<tr>
+                            <td><strong>${hora}</strong></td>
+                            <td>${nombres.length > 0 ? nombres.join(' ') : '<em>Libre</em>'}</td>
+                        </tr>`;
+                    }
                 });
 
-                document.getElementById('resultado').innerHTML = tabla + '</table>';
-            } catch (e) {
-                document.getElementById('resultado').innerHTML = "Error: " + e.message;
+                document.getElementById('resultado').innerHTML = tablaHtml + `</table>`;
+            } catch (err) {
+                document.getElementById('resultado').innerHTML = "Error al conectar con el servidor.";
+                console.error(err);
             }
         }
-        cargar();
+        cargarPartidas();
     </script>
 </body>
 </html>
