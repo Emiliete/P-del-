@@ -8,107 +8,42 @@
         table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
         th { background-color: #2e7d32; color: white; }
-        .fotoParticipante { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; margin: 0 2px; }
     </style>
 </head>
 <body>
 
     <h1>Partidas Programadas</h1>
-    
-    <div id="contenedor-datos" style="display:none;">
-        </div>
-
-    <div id="tabla-resultado"></div>
+    <table id="tabla-resultado">
+        <thead>
+            <tr><th>Hora</th><th>Pista</th><th>Jugadores</th><th>Estado</th></tr>
+        </thead>
+        <tbody id="app">
+            <tr><td colspan="4">Cargando datos...</td></tr>
+        </tbody>
+    </table>
 
     <script>
-        function procesar() {
-            const contenedor = document.getElementById('contenedor-datos');
-            const bloques = contenedor.querySelectorAll('.gridviewestilocabecera');
-            let lista = [];
-
-            bloques.forEach(cabecera => {
-                const padre = cabecera.parentElement;
-                const texto = cabecera.innerText;
-                const horaMatch = texto.match(/(\d{1,2}:\d{2})/);
-                const pistaMatch = texto.match(/Pista (\d+)/);
-                const fotos = padre.querySelectorAll('.participanteCuadro img');
-
-                if (horaMatch) {
-                    let [h, m] = horaMatch[0].split(':').map(Number);
-                    lista.push({
-                        hora: horaMatch[0],
-                        minutos: (h * 60) + m,
-                        pista: pistaMatch ? pistaMatch[1] : "-",
-                        fotosHtml: Array.from(fotos).map(f => f.outerHTML).join(''),
-                        estado: padre.innerText.includes('Cerrada') ? 'Cerrada' : 'Disponible'
-                    });
-                }
-            });
-
-            lista.sort((a, b) => a.minutos - b.minutos || parseInt(a.pista) - parseInt(b.pista));
-
-            let html = `<table><tr><th>Hora</th><th>Pista</th><th>Jugadores</th><th>Estado</th></tr>`;
-            lista.forEach(p => {
-                html += `<tr><td>${p.hora}</td><td>${p.pista}</td><td>${p.fotosHtml}</td><td>${p.estado}</td></tr>`;
-            });
-            html += `</table>`;
-            document.getElementById('tabla-resultado').innerHTML = html;
+        async function cargarPartidas() {
+            try {
+                // Aquí llamarás a tu función de Vercel (api/partidas)
+                const response = await fetch('/api/partidas'); 
+                const data = await response.json();
+                
+                const tbody = document.getElementById('app');
+                tbody.innerHTML = data.partidas.map(p => `
+                    <tr>
+                        <td>${p.hora}</td>
+                        <td>${p.pista}</td>
+                        <td>${p.jugadores}</td>
+                        <td>${p.estado}</td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                document.getElementById('app').innerHTML = "<tr><td colspan='4'>Error al conectar con el servidor.</td></tr>";
+            }
         }
 
-        // Si tienes el HTML pegado arriba, descomenta la siguiente línea:
-        // procesar();
+        cargarPartidas();
     </script>
-</body>
-</html>
-        procesarWeb();
-    </script>
-</body>
-</html>
-        console.error("Error detallado:", e);
-    }
-}
-
-// Ejecutar con un pequeño retraso para asegurar que la web haya cargado
-setTimeout(procesarPartidas, 2000);
-                    <td>P${p.pista}</td>
-                    <td>${p.estado}</td>
-                </tr>
-            `).join('')}
-        </table>`;
-}
-
-// Retraso de 2 segundos para asegurar que la web haya cargado
-setTimeout(iniciar, 2000);
-</script>
-            lista.push({
-                hora: horaText,
-                minutos: (h * 60) + m,
-                pista: pista,
-                jugadores: bloque.querySelector('.participanteCuadro')?.innerHTML || "Sin jugadores",
-                estado: bloque.innerText.includes('Completa') ? 'Completa' : 'Disponible'
-            });
-        });
-
-        // 2. Ordenar por hora y pista
-        lista.sort((a, b) => a.minutos - b.minutos || a.pista - b.pista);
-
-        // 3. Renderizar
-        document.getElementById('app').innerHTML = lista.map(p => `
-            <tr>
-                <td>${p.hora}</td>
-                <td>${p.pista}</td>
-                <td>${p.jugadores}</td>
-                <td>${p.estado}</td>
-            </tr>
-        `).join('');
-
-    } catch (e) {
-        document.getElementById('app').innerHTML = "<tr><td colspan='4'>Error al procesar los datos.</td></tr>";
-    }
-}
-
-// Ejecutar
-procesarPartidas();
-</script>
 </body>
 </html>
