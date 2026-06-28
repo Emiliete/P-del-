@@ -1,63 +1,68 @@
-<div id="app"></div>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Partidas Padel</title>
+    <style>
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #2e7d32; color: white; }
+        .avatar { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; }
+    </style>
+</head>
+<body>
+
+    <h2>Partidas Programadas</h2>
+    <table id="tablaPartidas">
+        <thead>
+            <tr><th>Hora</th><th>Pista</th><th>Jugadores</th><th>Estado</th></tr>
+        </thead>
+        <tbody id="app"></tbody>
+    </table>
 
 <script>
-async function fetchMatches() {
+async function procesarPartidas() {
     try {
-        // 1. Seleccionamos todos los contenedores que empiezan por "Pista"
-        // Según tu primer mensaje, cada partida parece ser un bloque principal.
-        // Ajusta este selector si fuera necesario (ej: document.querySelectorAll('.clase-de-tu-bloque'))
-        const bloques = Array.from(document.querySelectorAll('body > div')).filter(d => d.innerText.includes('Pista'));
-        
-        let matches = [];
+        // 1. Seleccionamos los bloques. Ajusta '.bloque-partida' a la clase real de tu web.
+        const bloques = Array.from(document.querySelectorAll('.bloque-partida')); 
+        let lista = [];
 
         bloques.forEach(bloque => {
-            const texto = bloque.innerText;
-            const horaMatch = texto.match(/(\d{1,2}:\d{2})/);
-            const pistaMatch = texto.match(/Pista (\d+)/);
+            const horaText = bloque.querySelector('.hora')?.innerText || "00:00";
+            const pista = parseInt(bloque.querySelector('.pista')?.innerText || 0);
             
-            if (horaMatch && pistaMatch) {
-                const hora = horaMatch[0];
-                // Buscamos el contenedor de imágenes (participanteCuadro)
-                const jugadores = bloque.querySelectorAll('.participanteCuadro');
-                let jugadoresHtml = Array.from(jugadores).map(j => j.innerHTML).join('');
-
-                matches.push({
-                    hora: hora,
-                    minutos: parseInt(hora.split(':')[0]) * 60 + parseInt(hora.split(':')[1]),
-                    pista: parseInt(pistaMatch[1]),
-                    jugadoresHtml: jugadoresHtml || "Sin jugadores",
-                    estado: texto.includes('Completa') ? 'Completa' : 'Disponible'
-                });
-            }
+            // Calculamos minutos para ordenar
+            const [h, m] = horaText.split(':').map(Number);
+            
+            lista.push({
+                hora: horaText,
+                minutos: (h * 60) + m,
+                pista: pista,
+                jugadores: bloque.querySelector('.participanteCuadro')?.innerHTML || "Sin jugadores",
+                estado: bloque.innerText.includes('Completa') ? 'Completa' : 'Disponible'
+            });
         });
 
-        // 2. Ordenamos por tiempo y pista
-        matches.sort((a, b) => a.minutos - b.minutos || a.pista - b.pista);
+        // 2. Ordenar por hora y pista
+        lista.sort((a, b) => a.minutos - b.minutos || a.pista - b.pista);
 
-        // 3. Generamos la tabla
-        let html = `
-        <table border="1">
-            <thead>
-                <tr><th>Hora</th><th>Pista</th><th>Jugadores</th><th>Estado</th></tr>
-            </thead>
-            <tbody>
-                ${matches.map(m => `
-                    <tr>
-                        <td>${m.hora}</td>
-                        <td>${m.pista}</td>
-                        <td>${m.jugadoresHtml}</td>
-                        <td>${m.estado}</td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>`;
+        // 3. Renderizar
+        document.getElementById('app').innerHTML = lista.map(p => `
+            <tr>
+                <td>${p.hora}</td>
+                <td>${p.pista}</td>
+                <td>${p.jugadores}</td>
+                <td>${p.estado}</td>
+            </tr>
+        `).join('');
 
-        document.getElementById('app').innerHTML = html;
     } catch (e) {
-        document.getElementById('app').innerHTML = "Error al procesar: " + e.message;
+        document.getElementById('app').innerHTML = "<tr><td colspan='4'>Error al procesar los datos.</td></tr>";
     }
 }
 
-// Ejecutamos
-fetchMatches();
+// Ejecutar
+procesarPartidas();
 </script>
+</body>
+</html>
