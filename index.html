@@ -12,6 +12,75 @@
         .info-header { font-weight: 800; border-bottom: 2px solid #000; margin-bottom: 10px; padding-bottom: 5px; font-size: 1.1em; }
         
         .vs-grid { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 10px; }
+        .equipo { font-size: 0.9em; line-height: 1.4; }
+        .vs-label { font-weight: bold; font-style: italic; align-self: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Partidas</h1>
+        <div id="resultado">Cargando...</div>
+    </div>
+
+    <script>
+        async function cargarPartidas() {
+            try {
+                const res = await fetch('/api/proxy');
+                const html = await res.text();
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                
+                // ELIMINACIÓN DE BASURA: Borramos todo lo que no sea texto de jugador antes de procesar
+                doc.querySelectorAll('style, script, .participanteCuadro, img').forEach(el => el.remove());
+                
+                const bloques = doc.body.innerText.split('Pista').filter(b => /\d{1,2}:\d{2}/.test(b));
+                let htmlResultado = '';
+                
+                bloques.forEach((bloque) => {
+                    const hora = bloque.match(/\d{1,2}:\d{2}/)?.[0] || "";
+                    const pista = bloque.substring(0, 2).trim();
+                    
+                    // FILTRO DE CONTENIDO: Solo líneas con nombres reales
+                    const lineas = bloque.split('\n')
+                        .map(l => l.trim())
+                        .filter(l => l.length > 3 && 
+                                     !/[{;=><]/.test(l) && 
+                                     !/Cerrada|Niveles|Abierta|Eq\./i.test(l) &&
+                                     !l.includes('participante'));
+                    
+                    const nombres = lineas.filter(l => /[a-zA-Z]{3,}/.test(l)).slice(0, 4);
+                    
+                    if (nombres.length > 0) {
+                        htmlResultado += `
+                            <div class="partida-card">
+                                <div class="info-header">${hora} - Pista ${pista}</div>
+                                <div class="vs-grid">
+                                    <div class="equipo">${nombres.slice(0, 2).join('<br>')}</div>
+                                    <div class="vs-label">VS</div>
+                                    <div class="equipo">${nombres.slice(2, 4).join('<br>')}</div>
+                                </div>
+                            </div>`;
+                    }
+                });
+                document.getElementById('resultado').innerHTML = htmlResultado || "No hay partidas.";
+            } catch (e) { document.getElementById('resultado').innerHTML = "Error al cargar."; }
+        }
+        document.addEventListener('DOMContentLoaded', cargarPartidas);
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Partidas - Padel Alboraya</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; background-color: #fdfdfd; padding: 20px; color: #000; }
+        .container { max-width: 600px; margin: 0 auto; }
+        h1 { text-align: center; color: #2e7d32; border-bottom: 3px solid #000; padding-bottom: 10px; margin-bottom: 25px; }
+        
+        .partida-card { background: #e8f5e9; border: 2px solid #000; padding: 15px; margin-bottom: 15px; border-radius: 4px; }
+        .info-header { font-weight: 800; border-bottom: 2px solid #000; margin-bottom: 10px; padding-bottom: 5px; font-size: 1.1em; }
+        
+        .vs-grid { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 10px; }
         .equipo { font-size: 0.85em; }
         .vs-label { font-weight: bold; align-self: center; }
         
