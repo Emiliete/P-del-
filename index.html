@@ -1,22 +1,71 @@
-// ... dentro de tu bucle bloques.forEach ...
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Visor de Partidas</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        th { background-color: #2e7d32; color: white; }
+        .foto-jugador { width: 40px; height: 40px; border-radius: 50%; display: inline-block; background-size: cover; background-position: center; margin: 2px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
 
-// Buscamos todos los elementos que tienen la clase de jugador
-const elementosJugador = padre.querySelectorAll('.participanteCuadro');
-let fotosHtml = "";
+    <h1>Partidas Programadas</h1>
+    <div id="tabla-resultado">Cargando datos...</div>
 
-elementosJugador.forEach(el => {
-    // 1. Buscamos el estilo que contiene la URL de la imagen
-    const style = el.getAttribute('style') || "";
-    // Buscamos el patrón "url(...)"
-    const match = style.match(/url\(['"]?([^'"]+)['"]?\)/);
-    
-    if (match) {
-        let src = match[1];
-        // Aseguramos URL absoluta
-        if (!src.startsWith('http')) {
-            src = 'https://www.padelalborayaindoor.com' + src.replace('..', '');
+    <script>
+        async function procesar() {
+            try {
+                const response = await fetch('/api/proxy');
+                const htmlTexto = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlTexto, 'text/html');
+
+                const bloques = doc.querySelectorAll('.gridviewestilocabecera');
+                let lista = [];
+
+                bloques.forEach(cabecera => {
+                    const padre = cabecera.closest('tr') || cabecera.parentElement;
+                    const contenedores = padre.querySelectorAll('.participanteCuadro');
+                    let fotosHtml = "";
+
+                    contenedores.forEach(cont => {
+                        const style = cont.getAttribute('style') || "";
+                        // Buscamos la URL en el atributo style
+                        const match = style.match(/url\(['"]?([^'"]+)['"]?\)/);
+                        if (match) {
+                            let src = match[1];
+                            if (!src.startsWith('http')) {
+                                src = 'https://www.padelalborayaindoor.com' + src.replace('..', '');
+                            }
+                            fotosHtml += `<div class="foto-jugador" style="background-image: url('${src}');"></div>`;
+                        }
+                    });
+
+                    lista.push({
+                        hora: cabecera.innerText.match(/(\d{1,2}:\d{2})/)?.[0] || "",
+                        fotos: fotosHtml,
+                        estado: padre.innerText.includes('Cerrada') ? 'Cerrada' : 'Disponible'
+                    });
+                });
+
+                let html = `<table><tr><th>Hora</th><th>Jugadores</th><th>Estado</th></tr>`;
+                lista.forEach(p => {
+                    if(p.hora) {
+                        html += `<tr><td>${p.hora}</td><td>${p.fotos}</td><td>${p.estado}</td></tr>`;
+                    }
+                });
+                document.getElementById('tabla-resultado').innerHTML = html + `</table>`;
+
+            } catch (err) {
+                document.getElementById('tabla-resultado').innerHTML = "Error al procesar.";
+                console.error(err);
+            }
         }
-        // Creamos la imagen
-        fotosHtml += `<img src="${src}" class="foto-jugador" onerror="this.style.display='none'">`;
-    }
-});
+        procesar();
+    </script>
+</body>
+</html>
