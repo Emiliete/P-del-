@@ -5,9 +5,10 @@
     <title>Partidas Padel Alboraya</title>
     <style>
         body { font-family: Arial, sans-serif; background-color: #e8f5e9; padding: 20px; }
-        .container { max-width: 800px; margin: auto; background: white; border: 2px solid black; padding: 20px; border-radius: 10px; }
+        .container { max-width: 800px; margin: auto; }
         h1 { color: #2e7d32; text-align: center; }
-        .match-card { border: 1px solid black; background: #c8e6c9; margin: 15px 0; padding: 15px; border-radius: 8px; }
+        .match-card { border: 2px solid black; background: #c8e6c9; margin: 15px 0; padding: 15px; border-radius: 8px; }
+        .pista-titulo { font-weight: bold; font-size: 1.2em; border-bottom: 1px solid black; margin-bottom: 10px; display: block; }
     </style>
 </head>
 <body>
@@ -19,10 +20,31 @@
         async function fetchMatches() {
             try {
                 const res = await fetch('/api/proxy');
-                const html = await res.text();
-                document.getElementById('app').innerHTML = "Datos recibidos correctamente.";
+                const htmlText = await res.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlText, 'text/html');
+                
+                // Buscamos los elementos que contienen la info de pistas
+                // (Esto es una aproximación basada en cómo suelen estructurarse estas webs)
+                const container = document.getElementById('app');
+                container.innerHTML = ''; // Limpiamos
+
+                // Buscamos todos los textos que empiecen por "Pista"
+                const textContent = doc.body.innerText;
+                const lines = textContent.split('\n');
+                
+                lines.forEach(line => {
+                    if (line.includes('Pista')) {
+                        const div = document.createElement('div');
+                        div.className = 'match-card';
+                        div.innerHTML = `<span class="pista-titulo">${line}</span>`;
+                        container.appendChild(div);
+                    }
+                });
+                
+                if (container.innerHTML === '') container.innerHTML = "No se pudieron procesar los detalles. Revisa la web original.";
             } catch (e) {
-                document.getElementById('app').innerHTML = "Error al cargar los datos.";
+                document.getElementById('app').innerHTML = "Error al procesar.";
             }
         }
         setInterval(fetchMatches, 20000);
