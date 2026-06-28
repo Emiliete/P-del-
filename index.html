@@ -5,48 +5,45 @@
     <title>Visor de Partidas</title>
     <style>
         body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
         th { background-color: #2e7d32; color: white; }
+        .jugador { font-size: 12px; margin: 2px; display: inline-block; }
     </style>
 </head>
 <body>
-
     <h1>Partidas Programadas</h1>
-    <div id="tabla-resultado">Conectando con el servidor...</div>
+    <div id="resultado">Cargando...</div>
 
     <script>
-        async function procesar() {
+        async function cargar() {
             try {
-                // Usamos allorigins para saltar el bloqueo de CORS y red de Vercel
-                const targetUrl = 'https://www.padelalborayaindoor.com/Matches/Grid.aspx';
-                const response = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(targetUrl));
+                const res = await fetch('/api/proxy');
+                const html = await res.text();
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const filas = doc.querySelectorAll('.gridviewestilocabecera');
                 
-                if (!response.ok) throw new Error('No se pudo conectar al proxy');
+                let tabla = '<table><tr><th>Hora</th><th>Jugadores</th></tr>';
                 
-                const data = await response.json();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(data.contents, 'text/html');
+                filas.forEach(f => {
+                    const tr = f.closest('tr');
+                    const hora = f.innerText.match(/\d{1,2}:\d{2}/)?.[0] || "-";
+                    const partes = tr.querySelectorAll('.participanteCuadro');
+                    let nombres = "";
+                    
+                    partes.forEach(p => {
+                        nombres += `<span class="jugador">👤 ${p.title || 'Jugador'}</span> `;
+                    });
 
-                const bloques = doc.querySelectorAll('.gridviewestilocabecera');
-                let html = `<table><tr><th>Hora</th><th>Estado</th></tr>`;
-                
-                bloques.forEach(cabecera => {
-                    const texto = cabecera.innerText;
-                    const horaMatch = texto.match(/(\d{1,2}:\d{2})/);
-                    if (horaMatch) {
-                        html += `<tr><td>${horaMatch[0]}</td><td>Disponible</td></tr>`;
-                    }
+                    tabla += `<tr><td>${hora}</td><td>${nombres || 'Libre'}</td></tr>`;
                 });
 
-                document.getElementById('tabla-resultado').innerHTML = html + `</table>`;
-
-            } catch (err) {
-                document.getElementById('tabla-resultado').innerHTML = "Error al obtener datos: " + err.message;
-                console.error(err);
+                document.getElementById('resultado').innerHTML = tabla + '</table>';
+            } catch (e) {
+                document.getElementById('resultado').innerHTML = "Error: " + e.message;
             }
         }
-        procesar();
+        cargar();
     </script>
 </body>
 </html>
