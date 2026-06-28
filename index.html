@@ -2,38 +2,43 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Partidas Padel</title>
+    <title>Tabla de Partidas</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; }
-        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
-        th { background-color: #2e7d32; color: white; }
-        .avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; margin-right: 5px; vertical-align: middle; }
+        /* Estilos básicos para que se vea bien */
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        .avatar { width: 30px; border-radius: 50%; vertical-align: middle; }
     </style>
 </head>
 <body>
-    <h2>Partidas Programadas</h2>
+
     <table id="tablaPartidas">
         <thead>
-            <tr><th>Hora</th><th>Pista</th><th>Jugadores</th><th>Estado</th></tr>
+            <tr>
+                <th>Hora</th>
+                <th>Pista</th>
+                <th>Jugadores</th>
+                <th>Estado</th>
+            </tr>
         </thead>
-        <tbody id="contenidoPartidas"></tbody>
+        <tbody id="cuerpoTabla">
+            </tbody>
     </table>
 
     <script>
-        function procesarPartidas() {
-            // 1. Seleccionamos todos los bloques que contienen datos (ajusta si es necesario)
-            const bloques = Array.from(document.querySelectorAll('a.resize + img')).map(el => el.parentElement.parentElement);
-            let listaPartidas = [];
-
-            bloques.forEach(bloque => {
-                const texto = bloque.innerText;
-                const horaMatch = texto.match(/(\d{1,2}:\d{2})/);
-                const pistaMatch = texto.match(/Pista (\d)/);
-                
-                if (horaMatch && pistaMatch) {
-                    const hora = horaMatch[0];
-                    listaPartidas.push({
+        function renderizarPartidas() {
+            const cuerpo = document.getElementById('cuerpoTabla');
+            // Aquí vaciamos la tabla antes de rellenar
+            cuerpo.innerHTML = ''; 
+            
+            // Lógica de ordenación y pintado aquí...
+            console.log("Tabla vaciada y lista para procesar");
+        }
+        
+        renderizarPartidas();
+    </script>
+</body>
+</html>
                         hora: hora,
                         minutos: parseInt(hora.split(':')[0]) * 60 + parseInt(hora.split(':')[1]),
                         pista: parseInt(pistaMatch[1]),
