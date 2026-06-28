@@ -5,12 +5,10 @@
     <title>Partidas - Padel Alboraya</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
-        .container { max-width: 900px; margin: auto; }
-        h1 { color: #1b5e20; text-align: center; }
         .card { background: white; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 5px solid #2e7d32; }
         .pista-title { font-weight: bold; color: #2e7d32; font-size: 1.1em; }
-        .info { margin-top: 10px; color: #444; line-height: 1.4; }
-        #resultado { margin-top: 20px; }
+        .info { margin-top: 10px; color: #444; }
+        .avatar { width: 30px; height: 30px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
     </style>
 </head>
 <body>
@@ -25,27 +23,30 @@
                 const res = await fetch('/api/proxy');
                 const html = await res.text();
                 const doc = new DOMParser().parseFromString(html, 'text/html');
+                
+                // Buscamos todas las imágenes dentro de los contenedores de jugadores
+                const imgs = doc.querySelectorAll('img');
+                imgs.forEach(img => {
+                    // Si la ruta es relativa, le añadimos el dominio base
+                    if (img.getAttribute('src') && !img.getAttribute('src').startsWith('http')) {
+                        img.src = 'https://www.padelalborayaindoor.com/' + img.getAttribute('src');
+                    }
+                    img.classList.add('avatar');
+                });
+
                 const texto = doc.body.innerText;
                 const lineas = texto.split('Pista');
                 
                 let htmlResultado = '';
-                
                 lineas.forEach(l => {
                     if (l.match(/\d{1,2}:\d{2}/)) {
-                        // Limpieza profunda de ruido visual
-                        let limpia = l.replace(/a\.resize.*?\}\}/g, '')
-                                      .replace(/function.*?\}\);/g, '')
-                                      .replace(/\.participanteCuadro.*?block\}/g, '');
-                        
-                        htmlResultado += `
-                            <div class="card">
-                                <div class="pista-title">Pista ${limpia.substring(0, 10).trim()}</div>
-                                <div class="info">${limpia.substring(10).trim()}</div>
-                            </div>`;
+                        // Limpieza
+                        let limpia = l.replace(/a\.resize.*?\}\}/g, '').replace(/function.*?\}\);/g, '');
+                        htmlResultado += `<div class="card"><div class="pista-title">Pista ${limpia.substring(0, 10).trim()}</div><div class="info">${limpia.substring(10).trim()}</div></div>`;
                     }
                 });
 
-                document.getElementById('resultado').innerHTML = htmlResultado || "No hay partidas ahora mismo.";
+                document.getElementById('resultado').innerHTML = htmlResultado || "No hay partidas.";
             } catch (e) {
                 document.getElementById('resultado').innerHTML = "Error: " + e.message;
             }
