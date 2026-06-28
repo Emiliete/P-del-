@@ -5,43 +5,45 @@
     <title>Visor de Partidas</title>
     <style>
         body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; background: white; }
+        table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
         th { background-color: #2e7d32; color: white; }
-        .disponible { color: green; font-weight: bold; }
-        .cerrada { color: gray; }
     </style>
 </head>
 <body>
 
     <h1>Partidas Programadas</h1>
-    <div id="tabla-resultado">Cargando...</div>
+    <div id="tabla-resultado">Conectando con el servidor...</div>
 
     <script>
         async function procesar() {
             try {
-                const response = await fetch('/api/proxy');
-                const htmlTexto = await response.text();
+                // Usamos allorigins para saltar el bloqueo de CORS y red de Vercel
+                const targetUrl = 'https://www.padelalborayaindoor.com/Matches/Grid.aspx';
+                const response = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(targetUrl));
+                
+                if (!response.ok) throw new Error('No se pudo conectar al proxy');
+                
+                const data = await response.json();
                 const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlTexto, 'text/html');
+                const doc = parser.parseFromString(data.contents, 'text/html');
 
                 const bloques = doc.querySelectorAll('.gridviewestilocabecera');
                 let html = `<table><tr><th>Hora</th><th>Estado</th></tr>`;
-
+                
                 bloques.forEach(cabecera => {
-                    const tr = cabecera.closest('tr');
-                    const hora = cabecera.innerText.match(/(\d{1,2}:\d{2})/)?.[0] || "---";
-                    const estado = tr.innerText.includes('Cerrada') ? 'Cerrada' : 'Disponible';
-                    
-                    html += `<tr>
-                        <td>${hora}</td>
-                        <td class="${estado.toLowerCase()}">${estado}</td>
-                    </tr>`;
+                    const texto = cabecera.innerText;
+                    const horaMatch = texto.match(/(\d{1,2}:\d{2})/);
+                    if (horaMatch) {
+                        html += `<tr><td>${horaMatch[0]}</td><td>Disponible</td></tr>`;
+                    }
                 });
 
                 document.getElementById('tabla-resultado').innerHTML = html + `</table>`;
+
             } catch (err) {
-                document.getElementById('tabla-resultado').innerHTML = "Error de conexión. Intenta recargar.";
+                document.getElementById('tabla-resultado').innerHTML = "Error al obtener datos: " + err.message;
+                console.error(err);
             }
         }
         procesar();
