@@ -2,47 +2,46 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Visor Diagnóstico</title>
+    <title>Visor de Partidas</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; line-height: 1.5; }
-        .log { background: #eee; padding: 10px; border-radius: 5px; font-family: monospace; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+        th { background: #2e7d32; color: white; }
+        .info { color: #555; font-size: 0.8em; }
     </style>
 </head>
 <body>
-    <h1>Visor de Partidas</h1>
-    <div id="status" class="log">Conectando...</div>
-    <div id="container"></div>
+    <h1>Partidas Programadas</h1>
+    <div id="resultado">Buscando datos...</div>
 
     <script>
-        async function diagnostico() {
-            const statusDiv = document.getElementById('status');
+        async function cargar() {
             try {
-                const response = await fetch('/api/proxy');
-                const html = await response.text();
-                
-                // Diagnóstico básico
-                const tieneTabla = html.includes('table') || html.includes('gridview');
-                statusDiv.innerHTML = `Conexión exitosa. ¿Contiene tabla?: ${tieneTabla}`;
-
+                const res = await fetch('/api/proxy');
+                const html = await res.text();
                 const doc = new DOMParser().parseFromString(html, 'text/html');
+                
+                // Buscamos todas las filas de todas las tablas
                 const filas = doc.querySelectorAll('tr');
-                
-                let htmlResultado = '<table><tr><th>Contenido encontrado (primeras 5 filas)</th></tr>';
-                
-                filas.forEach((fila, index) => {
-                    if(index < 5) {
-                        htmlResultado += `<tr><td>${fila.innerText.substring(0, 100)}</td></tr>`;
+                let tablaHtml = '<table><tr><th>Posible Hora</th><th>Contenido de la fila</th></tr>';
+                let encontrado = false;
+
+                filas.forEach(f => {
+                    const texto = f.innerText.trim();
+                    // Buscamos filas que tengan formato de hora (ej: 18:30)
+                    if (/\d{1,2}:\d{2}/.test(texto)) {
+                        tablaHtml += `<tr><td>${texto.match(/\d{1,2}:\d{2}/)[0]}</td><td>${texto.substring(0, 100)}...</td></tr>`;
+                        encontrado = true;
                     }
                 });
 
-                document.getElementById('container').innerHTML = htmlResultado + '</table>';
-            } catch (err) {
-                statusDiv.innerHTML = "Error de conexión: " + err.message;
+                document.getElementById('resultado').innerHTML = encontrado ? tablaHtml + '</table>' : "No se encontraron filas con horas. Revisa la consola.";
+            } catch (e) {
+                document.getElementById('resultado').innerHTML = "Error: " + e.message;
             }
         }
-        diagnostico();
+        cargar();
     </script>
 </body>
 </html>
