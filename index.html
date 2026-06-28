@@ -5,16 +5,14 @@
     <title>Partidas Padel Alboraya</title>
     <style>
         body { font-family: Arial, sans-serif; background-color: #e8f5e9; padding: 20px; }
-        .container { max-width: 800px; margin: auto; }
+        .container { max-width: 900px; margin: auto; }
         h1 { color: #2e7d32; text-align: center; }
-        .match-card { border: 2px solid black; background: #c8e6c9; margin: 15px 0; padding: 15px; border-radius: 8px; }
-        .hora { font-weight: bold; font-size: 1.2em; color: #1b5e20; }
-        .jugadores { font-size: 0.9em; margin-top: 5px; color: #333; }
+        .match-row { border: 2px solid black; background: #c8e6c9; margin: 10px 0; padding: 10px; border-radius: 8px; font-size: 0.9em; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Partidas y Jugadores</h1>
+        <h1>Partidas en directo</h1>
         <div id="app">Cargando partidas...</div>
     </div>
     <script>
@@ -23,17 +21,28 @@
                 const res = await fetch('/api/proxy');
                 const htmlText = await res.text();
                 const doc = new DOMParser().parseFromString(htmlText, 'text/html');
-                
-                // Nota: Esta parte asume que los nombres aparecen como texto dentro de las mismas celdas que las horas.
-                // Si la web usa tablas, extraeremos el contenido de las filas.
                 const container = document.getElementById('app');
-                container.innerHTML = '<h3>Listado detectado:</h3>';
+                container.innerHTML = '';
                 
-                const textoLimpio = doc.body.innerText;
-                // Dividimos el texto para encontrar bloques de pistas y jugadores
-                const bloques = textoLimpio.split('Pista');
+                // Buscamos todas las filas de la tabla
+                const rows = doc.querySelectorAll('tr');
                 
-                bloques.forEach(bloque => {
+                rows.forEach(row => {
+                    // Si la fila tiene celdas, las procesamos
+                    if (row.cells.length > 1) {
+                        const div = document.createElement('div');
+                        div.className = 'match-row';
+                        div.innerText = Array.from(row.cells).map(c => c.innerText.trim()).join(' | ');
+                        container.appendChild(div);
+                    }
+                });
+            } catch (e) { container.innerHTML = "Error al procesar el grid."; }
+        }
+        setInterval(fetchMatches, 20000);
+        fetchMatches();
+    </script>
+</body>
+</html>
                     if (bloque.trim().length > 0) {
                         const div = document.createElement('div');
                         div.className = 'match-card';
