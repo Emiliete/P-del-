@@ -8,13 +8,13 @@
         table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
         th { background-color: #2e7d32; color: white; }
-        .foto-jugador { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; margin: 2px; border: 1px solid #ccc; }
+        .foto-jugador { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; margin: 2px; border: 1px solid #ccc; background-size: cover; }
     </style>
 </head>
 <body>
 
     <h1>Partidas Programadas</h1>
-    <div id="tabla-resultado">Cargando datos...</div>
+    <div id="tabla-resultado">Procesando...</div>
 
     <script>
         async function procesar() {
@@ -24,55 +24,51 @@
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(htmlTexto, 'text/html');
 
-                // Buscamos los bloques que contienen la información de la partida
-                const bloques = doc.querySelectorAll('tr'); 
+                // Buscamos los bloques de partida
+                const bloques = doc.querySelectorAll('.gridviewestilocabecera');
                 let lista = [];
 
-                bloques.forEach(bloque => {
-                    // Buscamos la hora dentro del bloque
-                    const horaEl = bloque.innerText.match(/(\d{1,2}:\d{2})/);
+                bloques.forEach(cabecera => {
+                    const padre = cabecera.closest('tr') || cabecera.parentElement;
                     
-                    // Buscamos imágenes dentro de este bloque
-                    const imgs = bloque.querySelectorAll('img');
-                    
-                    if (horaEl) {
-                        let fotosHtml = "";
-                        imgs.forEach(img => {
-                            let src = img.getAttribute('src');
-                            if (src) {
-                                // Aseguramos ruta absoluta
-                                if (!src.startsWith('http')) {
-                                    src = 'https://www.padellaborayaindoor.com' + src.replace('..', '');
-                                }
-                                fotosHtml += `<img src="${src}" class="foto-jugador" onerror="this.style.display='none'">`;
-                            }
-                        });
+                    // Buscamos los contenedores de jugadores (clase .participanteCuadro)
+                    const contenedores = padre.querySelectorAll('.participanteCuadro');
+                    let fotosHtml = "";
 
-                        lista.push({
-                            hora: horaEl[0],
-                            fotos: fotosHtml || "Sin jugadores",
-                            estado: bloque.innerText.includes('Cerrada') ? 'Cerrada' : 'Disponible'
-                        });
-                    }
+                    contenedores.forEach(cont => {
+                        // Extraemos la URL del fondo (background-image)
+                        const style = cont.getAttribute('style') || "";
+                        const match = style.match(/url\(['"]?([^'"]+)['"]?\)/);
+                        
+                        if (match) {
+                            let src = match[1];
+                            if (!src.startsWith('http')) {
+                                src = 'https://www.padellaborayaindoor.com' + src.replace('..', '');
+                            }
+                            fotosHtml += `<div class="foto-jugador" style="display:inline-block; background-image: url('${src}');"></div>`;
+                        }
+                    });
+
+                    lista.push({
+                        hora: cabecera.innerText.match(/(\d{1,2}:\d{2})/)?.[0] || "",
+                        fotos: fotosHtml,
+                        estado: padre.innerText.includes('Cerrada') ? 'Cerrada' : 'Disponible'
+                    });
                 });
 
-                // Ordenar por hora
-                lista.sort((a, b) => a.hora.localeCompare(b.hora));
-
-                // Dibujar tabla
+                // Dibujar
                 let html = `<table><tr><th>Hora</th><th>Jugadores</th><th>Estado</th></tr>`;
                 lista.forEach(p => {
-                    html += `<tr><td>${p.hora}</td><td>${p.fotos}</td><td>${p.estado}</td></tr>`;
+                    if(p.hora) {
+                        html += `<tr><td>${p.hora}</td><td>${p.fotos}</td><td>${p.estado}</td></tr>`;
+                    }
                 });
-                html += `</table>`;
-                
-                document.getElementById('tabla-resultado').innerHTML = html;
+                document.getElementById('tabla-resultado').innerHTML = html + `</table>`;
 
             } catch (err) {
-                document.getElementById('tabla-resultado').innerHTML = "Error al procesar: " + err.message;
+                document.getElementById('tabla-resultado').innerHTML = "Error: " + err.message;
             }
         }
-
         procesar();
     </script>
 </body>
