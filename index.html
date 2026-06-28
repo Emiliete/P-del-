@@ -2,6 +2,67 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <title>Partidas Padel</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f7f0; padding: 20px; }
+        .grid-partidas { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
+        .card { background: #fff; border: 2px solid #2e7d32; padding: 15px; border-radius: 8px; }
+        .jugador-item { display: flex; align-items: center; margin: 5px 0; }
+        .foto { width: 40px; height: 40px; border-radius: 50%; margin-right: 10px; object-fit: cover; background: #eee; }
+    </style>
+</head>
+<body>
+    <h1 style="text-align:center">Partidas</h1>
+    <div id="app" class="grid-partidas">Cargando...</div>
+
+    <script>
+        fetch('/api/proxy')
+            .then(res => res.text())
+            .then(html => {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const output = document.getElementById('app');
+                let htmlResultado = '';
+
+                // Buscamos cada celda (td) que contiene la información de los jugadores
+                const celdas = doc.querySelectorAll('td');
+
+                celdas.forEach(celda => {
+                    // Solo procesamos las celdas que contienen enlaces de jugadores
+                    const enlacesJugador = celda.querySelectorAll('a[class*="fotoParticipante"]');
+                    
+                    if (enlacesJugador.length > 0) {
+                        htmlResultado += `<div class="card">`;
+                        
+                        enlacesJugador.forEach(enlace => {
+                            const img = enlace.querySelector('img');
+                            const imgSrc = img ? img.getAttribute('src') : '';
+                            // El nombre suele estar justo después o dentro del enlace
+                            const nombre = enlace.innerText.trim() || "Jugador";
+                            
+                            const urlImagen = imgSrc.startsWith('http') ? imgSrc : 'https://www.padelalborayaindoor.com/' + imgSrc;
+
+                            htmlResultado += `
+                                <div class="jugador-item">
+                                    <img src="${urlImagen}" class="foto" onerror="this.style.display='none'">
+                                    <span>${nombre}</span>
+                                </div>`;
+                        });
+                        
+                        htmlResultado += `</div>`;
+                    }
+                });
+
+                output.innerHTML = htmlResultado || "No se encontraron jugadores.";
+            })
+            .catch(() => {
+                document.getElementById('app').innerHTML = "Error al cargar.";
+            });
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
     <title>hola - Padel Alboraya</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f4f7f4; padding: 20px; }
