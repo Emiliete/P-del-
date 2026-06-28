@@ -5,17 +5,14 @@
     <title>Partidas - Padel Alboraya</title>
     <style>
         body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; }
-        .card { background: #fff; border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .header { font-weight: bold; border-bottom: 1px solid #eee; margin-bottom: 8px; padding-bottom: 5px; }
-        .jugador { font-size: 0.9em; margin: 2px 0; color: #444; }
+        .card { background: #fff; border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
+        .header { font-weight: bold; border-bottom: 1px solid #eee; margin-bottom: 10px; padding-bottom: 5px; color: #2e7d32; }
+        .jugadores-lista { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .jugador { font-size: 0.85em; padding: 2px 0; border-bottom: 1px solid #f9f9f9; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Partidas</h1>
-        <div id="resultado">Cargando...</div>
-    </div>
+    <div id="app">Cargando partidas...</div>
 
     <script>
         async function cargar() {
@@ -23,39 +20,40 @@
                 const res = await fetch('/api/proxy');
                 const html = await res.text();
                 const doc = new DOMParser().parseFromString(html, 'text/html');
-
-                // 1. Limpieza radical: borramos scripts, estilos, imágenes y clases técnicas
-                doc.querySelectorAll('script, style, link, img, .participanteCuadro').forEach(e => e.remove());
-
+                
+                // Limpiamos basura técnica
+                doc.querySelectorAll('script, style, img, .participanteCuadro').forEach(e => e.remove());
+                
                 const filas = doc.querySelectorAll('tr');
                 let htmlResultado = '';
 
                 filas.forEach(tr => {
                     const texto = tr.innerText.trim();
-                    // Solo filas con hora y "Pista"
+                    // Filtro para detectar una fila de partida
                     if (/\d{1,2}:\d{2}/.test(texto) && texto.includes('Pista')) {
-                        // Limpiamos líneas descartando código basura
+                        
+                        // Extraemos nombres: cualquier línea que contenga un nombre (excluimos ruido)
                         const lineas = texto.split('\n')
                             .map(l => l.trim())
-                            .filter(l => l.length > 3 && 
-                                         !l.includes('{') && 
-                                         !l.includes('resize') && 
-                                         !l.includes('Eq.'));
+                            .filter(l => l.length > 3 && !/[{;]/.test(l) && !/Pista|Cerrada|Abierta|Niveles|Eq\./i.test(l));
 
-                        if (lineas.length >= 3) {
-                            htmlResultado += `
-                            <div class="card">
+                        if (lineas.length > 0) {
+                            htmlResultado += `<div class="card">
                                 <div class="header">${lineas[0]}</div>
-                                <div class="jugador">${lineas[1] || ''}</div>
-                                <div class="jugador">${lineas[2] || ''}</div>
-                                <div class="jugador">${lineas[3] || ''}</div>
-                            </div>`;
+                                <div class="jugadores-lista">`;
+                            
+                            // Listamos TODOS los jugadores encontrados, sin límite de 4
+                            lineas.slice(1).forEach(jugador => {
+                                htmlResultado += `<div class="jugador">${jugador}</div>`;
+                            });
+
+                            htmlResultado += `</div></div>`;
                         }
                     }
                 });
-                document.getElementById('resultado').innerHTML = htmlResultado || "No hay partidas.";
+                document.getElementById('app').innerHTML = htmlResultado || "No hay partidas.";
             } catch (e) {
-                document.getElementById('resultado').innerHTML = "Error al cargar.";
+                document.getElementById('app').innerHTML = "Error al cargar.";
             }
         }
         cargar();
