@@ -2,66 +2,64 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Visor de Partidas Padel</title>
+    <title>Visor de Partidas</title>
     <style>
         body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; background: white; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
         th { background-color: #2e7d32; color: white; }
+        /* Estilo para las fotos */
+        .foto-jugador { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin: 2px; }
     </style>
 </head>
 <body>
 
     <h1>Partidas Programadas</h1>
-    <div id="status">Cargando datos...</div>
-    <div id="tabla-resultado"></div>
+    <div id="tabla-resultado">Cargando...</div>
 
     <script>
         async function procesar() {
-            try {
-                // 1. Llamamos a tu proxy
-                const response = await fetch('/api/proxy');
-                const htmlTexto = await response.text();
+            const response = await fetch('/api/proxy');
+            const htmlTexto = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlTexto, 'text/html');
 
-                // 2. Convertimos el texto en un DOM real
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlTexto, 'text/html');
+            const bloques = doc.querySelectorAll('.gridviewestilocabecera');
+            let lista = [];
 
-                // 3. Procesamos los bloques (ajusta estos selectores según lo que veas en la web)
-                const bloques = doc.querySelectorAll('.gridviewestilocabecera');
-                let lista = [];
-
-                bloques.forEach(cabecera => {
-                    const padre = cabecera.parentElement;
-                    const texto = cabecera.innerText;
-                    
-                    // Extraemos datos básicos
-                    const horaMatch = texto.match(/(\d{1,2}:\d{2})/);
-                    const jugadores = padre.querySelector('.participanteCuadro')?.innerHTML || "Sin jugadores";
-
-                    if (horaMatch) {
-                        lista.push({
-                            hora: horaMatch[0],
-                            jugadores: jugadores,
-                            estado: texto.includes('Cerrada') ? 'Cerrada' : 'Disponible'
-                        });
-                    }
-                });
-
-                // 4. Renderizamos la tabla
-                let html = `<table><tr><th>Hora</th><th>Jugadores</th><th>Estado</th></tr>`;
-                lista.forEach(p => {
-                    html += `<tr><td>${p.hora}</td><td>${p.jugadores}</td><td>${p.estado}</td></tr>`;
-                });
-                html += `</table>`;
+            bloques.forEach(cabecera => {
+                const padre = cabecera.parentElement;
                 
-                document.getElementById('tabla-resultado').innerHTML = html;
-                document.getElementById('status').innerText = "";
+                // 1. Obtenemos todas las imágenes de esta partida
+                const imgs = padre.querySelectorAll('img');
+                let fotosHtml = "";
+                imgs.forEach(img => {
+                    let src = img.getAttribute('src');
+                    // Si la ruta es relativa, la convertimos en absoluta
+                    if (src && !src.startsWith('http')) {
+                        src = 'https://www.padellaborayaindoor.com' + src.replace('..', '');
+                    }
+                    fotosHtml += `<img src="${src}" class="foto-jugador" onerror="this.style.display='none'">`;
+                });
 
-            } catch (err) {
-                console.error(err);
-                document.getElementById('status').innerText = "Error al procesar los datos.";
-            }
+                lista.push({
+                    hora: cabecera.innerText.match(/(\d{1,2}:\d{2})/)?.[0] || "",
+                    fotos: fotosHtml,
+                    estado: padre.innerText.includes('Cerrada') ? 'Cerrada' : 'Disponible'
+                });
+            });
+
+            // Ordenar por hora
+            lista.sort((a, b) => a.hora.localeCompare(b.hora));
+
+            // Renderizar
+            let html = `<table><tr><th>Hora</th><th>Jugadores</th><th>Estado</th></tr>`;
+            lista.forEach(p => {
+                if(p.hora) {
+                    html += `<tr><td>${p.hora}</td><td>${p.fotos}</td><td>${p.estado}</td></tr>`;
+                }
+            });
+            document.getElementById('tabla-resultado').innerHTML = html + `</table>`;
         }
 
         procesar();
