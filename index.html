@@ -5,35 +5,64 @@
     <title>Partidas Padel</title>
     <style>
         body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; }
         th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
         th { background-color: #2e7d32; color: white; }
-        .avatar { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; margin-right: 5px; vertical-align: middle; }
-        .completa { color: #d32f2f; font-weight: bold; }
+        .avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; margin-right: 5px; vertical-align: middle; }
     </style>
 </head>
 <body>
     <h2>Partidas Programadas</h2>
-    <div id="app">Procesando datos...</div>
+    <table id="tablaPartidas">
+        <thead>
+            <tr><th>Hora</th><th>Pista</th><th>Jugadores</th><th>Estado</th></tr>
+        </thead>
+        <tbody id="contenidoPartidas"></tbody>
+    </table>
 
     <script>
-        async function fetchMatches() {
-            try {
-                // Suponiendo que el HTML original está en la misma página o cargado vía proxy
-                const text = document.body.innerHTML; 
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(text, 'text/html');
-                
-                let matches = [];
-                // Ajusta este selector según cómo detectes cada bloque de partida
-                const bloques = Array.from(doc.querySelectorAll('.bloque-partida')); 
+        function procesarPartidas() {
+            // 1. Seleccionamos todos los bloques que contienen datos (ajusta si es necesario)
+            const bloques = Array.from(document.querySelectorAll('a.resize + img')).map(el => el.parentElement.parentElement);
+            let listaPartidas = [];
 
-                bloques.forEach(bloque => {
-                    const hora = bloque.querySelector('.hora').innerText;
-                    const pista = parseInt(bloque.querySelector('.pista').innerText);
-                    const jugadoresHtml = bloque.querySelector('.jugadores-container').innerHTML;
-                    const esCompleta = bloque.innerText.includes('Completa');
-                    
+            bloques.forEach(bloque => {
+                const texto = bloque.innerText;
+                const horaMatch = texto.match(/(\d{1,2}:\d{2})/);
+                const pistaMatch = texto.match(/Pista (\d)/);
+                
+                if (horaMatch && pistaMatch) {
+                    const hora = horaMatch[0];
+                    listaPartidas.push({
+                        hora: hora,
+                        minutos: parseInt(hora.split(':')[0]) * 60 + parseInt(hora.split(':')[1]),
+                        pista: parseInt(pistaMatch[1]),
+                        htmlJugadores: bloque.querySelector('.participanteCuadro')?.innerHTML || "Sin datos",
+                        estado: texto.includes('Completa') ? 'Completa' : 'Cerrada'
+                    });
+                }
+            });
+
+            // 2. Ordenar
+            listaPartidas.sort((a, b) => a.minutos - b.minutos || a.pista - b.pista);
+
+            // 3. Renderizar
+            const tbody = document.getElementById('contenidoPartidas');
+            tbody.innerHTML = listaPartidas.map(p => `
+                <tr>
+                    <td>${p.hora}</td>
+                    <td>${p.pista}</td>
+                    <td>${p.htmlJugadores}</td>
+                    <td>${p.estado}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Ejecutar
+        procesarPartidas();
+    </script>
+</body>
+</html>
                     matches.push({
                         hora: hora,
                         minutos: parseInt(hora.split(':')[0]) * 60 + parseInt(hora.split(':')[1]),
