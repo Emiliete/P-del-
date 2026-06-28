@@ -1,39 +1,45 @@
-<div id="app">Cargando...</div>
+async function procesarPartidas() {
+    try {
+        // Seleccionamos todos los bloques
+        const bloques = document.querySelectorAll('.bloque-partida'); 
+        console.log("Bloques encontrados: " + bloques.length); // MIRA ESTO EN LA CONSOLA
+        
+        let lista = [];
 
-<script>
-function iniciar() {
-    // Buscamos todos los elementos que contengan "Pista" (donde empieza cada partida)
-    const elementos = Array.from(document.querySelectorAll('*'));
-    const bloques = elementos.filter(el => el.innerText && el.innerText.includes('Pista') && el.innerText.includes(':'));
-    
-    let lista = [];
-
-    bloques.forEach(bloque => {
-        let texto = bloque.innerText;
-        // Extraemos hora y pista
-        let horaMatch = texto.match(/(\d{1,2}:\d{2})/);
-        let pistaMatch = texto.match(/Pista (\d+)/);
-
-        if (horaMatch && pistaMatch) {
+        bloques.forEach((bloque, index) => {
+            const horaText = bloque.querySelector('.hora')?.innerText || "00:00";
+            const pista = parseInt(bloque.querySelector('.pista')?.innerText || 0);
+            const [h, m] = horaText.split(':').map(Number);
+            
             lista.push({
-                hora: horaMatch[0],
-                minutos: parseInt(horaMatch[0].split(':')[0]) * 60 + parseInt(horaMatch[0].split(':')[1]),
-                pista: pistaMatch[1],
-                contenido: bloque.innerHTML, // Capturamos todo el bloque
-                estado: texto.includes('Completa') ? 'Completa' : 'Disponible'
+                hora: horaText,
+                minutos: (h * 60) + m,
+                pista: pista,
+                jugadores: bloque.querySelector('.participanteCuadro')?.innerHTML || "Sin datos",
+                estado: bloque.innerText.includes('Completa') ? 'Completa' : 'Disponible'
             });
-        }
-    });
+        });
 
-    // Ordenar
-    lista.sort((a, b) => a.minutos - b.minutos);
+        console.log("Partidas procesadas:", lista); // MIRA ESTO EN LA CONSOLA
 
-    // Mostrar
-    document.getElementById('app').innerHTML = `
-        <table border="1" style="width:100%; border-collapse:collapse;">
-            ${lista.map(p => `
-                <tr>
-                    <td>${p.hora}</td>
+        // Ordenar y renderizar
+        lista.sort((a, b) => a.minutos - b.minutos || a.pista - b.pista);
+        document.getElementById('app').innerHTML = lista.map(p => `
+            <tr>
+                <td>${p.hora}</td>
+                <td>${p.pista}</td>
+                <td>${p.jugadores}</td>
+                <td>${p.estado}</td>
+            </tr>
+        `).join('');
+
+    } catch (e) {
+        console.error("Error detallado:", e);
+    }
+}
+
+// Ejecutar con un pequeño retraso para asegurar que la web haya cargado
+setTimeout(procesarPartidas, 2000);
                     <td>P${p.pista}</td>
                     <td>${p.estado}</td>
                 </tr>
