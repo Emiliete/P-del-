@@ -2,6 +2,67 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <title>Partidas Alboraya</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
+        .container { max-width: 800px; margin: auto; }
+        .partida-card { background: white; padding: 20px; margin-bottom: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-left: 6px solid #2e7d32; }
+        .titulo { font-weight: bold; color: #2e7d32; font-size: 1.2em; margin-bottom: 8px; }
+        .info { color: #555; line-height: 1.6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Partidas en Alboraya</h1>
+        <div id="resultado">Cargando datos...</div>
+    </div>
+
+    <script>
+        async function cargar() {
+            try {
+                const res = await fetch('/api/proxy');
+                const html = await res.text();
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                
+                // Obtenemos el texto y dividimos por "Pista" para separar las partidas
+                const texto = doc.body.innerText;
+                const bloques = texto.split('Pista');
+                
+                let htmlResultado = '';
+                
+                bloques.forEach(bloque => {
+                    // Filtramos: solo nos interesan bloques con formato de hora
+                    if (bloque.match(/\d{1,2}:\d{2}/)) {
+                        // Limpieza: eliminamos todos los códigos CSS/JS no deseados
+                        let limpio = bloque.replace(/a\.resize.*?\}/g, '')
+                                          .replace(/\.participanteCuadro.*?block\}/g, '')
+                                          .replace(/function.*?\}\);/g, '')
+                                          .trim();
+                        
+                        // Extraemos la hora
+                        const horaMatch = limpio.match(/\d{1,2}:\d{2}/);
+                        const hora = horaMatch ? horaMatch[0] : '';
+                        
+                        htmlResultado += `
+                            <div class="partida-card">
+                                <div class="titulo">Pista ${limpio.substring(0, 10).trim()}</div>
+                                <div class="info">${limpio.substring(10).replace(hora, '').trim()}</div>
+                            </div>`;
+                    }
+                });
+
+                document.getElementById('resultado').innerHTML = htmlResultado || "No hay partidas disponibles.";
+            } catch (e) {
+                document.getElementById('resultado').innerHTML = "Error al procesar: " + e.message;
+            }
+        }
+        cargar();
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
     <title>Partidas - Padel Alboraya</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
