@@ -4,36 +4,54 @@
     <meta charset="UTF-8">
     <title>Partidas Padel Alboraya</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #e8f5e9; padding: 20px; }
-        .container { max-width: 950px; margin: auto; }
-        .match-row { border: 2px solid black; background: #c8e6c9; margin: 8px 0; padding: 10px; border-radius: 8px; font-size: 0.85em; }
-        h1 { color: #2e7d32; text-align: center; }
+        body { font-family: sans-serif; background-color: #e8f5e9; padding: 10px; }
+        .match-card { border: 2px solid black; background: white; margin-bottom: 20px; padding: 15px; border-radius: 12px; }
+        .pista-hora { font-weight: bold; font-size: 1.2em; color: #2e7d32; border-bottom: 2px solid #2e7d32; margin-bottom: 10px; padding-bottom: 5px; }
+        .equipo { font-size: 0.9em; margin: 5px 0; color: #333; }
+        .jugador { background: #c8e6c9; padding: 3px 8px; border-radius: 4px; margin: 2px; display: inline-block; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Partidas y Jugadores</h1>
-        <div id="app">Cargando datos detallados...</div>
-    </div>
+    <h1>Partidas en directo</h1>
+    <div id="app">Cargando datos...</div>
+
     <script>
         async function fetchMatches() {
             try {
                 const res = await fetch('/api/proxy');
-                const htmlText = await res.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlText, 'text/html');
-                
+                const text = await res.text();
                 const container = document.getElementById('app');
                 container.innerHTML = '';
+
+                // Dividimos el texto por "Pista"
+                const partes = text.split(/Pista \d+ \d{1,2}:\d{2}/);
                 
-                // Buscamos todas las tablas en la página
-                const tables = doc.querySelectorAll('table');
-                
-                tables.forEach(table => {
-                    const rows = table.querySelectorAll('tr');
-                    rows.forEach(row => {
-                        // Filtramos para que solo muestre filas con contenido relevante
-                        if (row.innerText.includes('Pista') || row.innerText.includes('Eq.')) {
+                // Extraemos todos los fragmentos de Pista y hora
+                const titulos = text.match(/Pista \d+ \d{1,2}:\d{2}/g);
+
+                if (titulos) {
+                    titulos.forEach((titulo, i) => {
+                        const div = document.createElement('div');
+                        div.className = 'match-card';
+                        
+                        // Limpiamos los nombres de los jugadores
+                        let contenido = partes[i+1].split('No disponible')[0].split('Completa')[0];
+                        let jugadores = contenido.match(/\d+,\d{2}-[^<]+/g) || [];
+                        
+                        let htmlJugadores = jugadores.map(j => `<span class="jugador">${j}</span>`).join('');
+                        
+                        div.innerHTML = `<div class="pista-hora">${titulo}</div>
+                                         <div class="equipo">${htmlJugadores || 'Sin jugadores registrados'}</div>`;
+                        container.appendChild(div);
+                    });
+                }
+            } catch (e) { container.innerHTML = "Error al procesar."; }
+        }
+        setInterval(fetchMatches, 20000);
+        fetchMatches();
+    </script>
+</body>
+</html>
                             const div = document.createElement('div');
                             div.className = 'match-row';
                             div.innerText = row.innerText.replace(/\s+/g, ' ').trim();
