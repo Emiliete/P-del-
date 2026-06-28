@@ -2,7 +2,6 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Partidas - Padel Alboraya</title>
     <style>
         body { font-family: -apple-system, sans-serif; background-color: #fdfdfd; padding: 20px; color: #000; }
@@ -10,76 +9,70 @@
         h1 { text-align: center; color: #2e7d32; border-bottom: 3px solid #000; padding-bottom: 10px; margin-bottom: 25px; }
         
         .partida-card { background: #e8f5e9; border: 2px solid #000; padding: 15px; margin-bottom: 15px; border-radius: 4px; }
-        .info-header { font-weight: 800; border-bottom: 2px solid #000; margin-bottom: 10px; padding-bottom: 5px; font-size: 1.1em; display: flex; justify-content: space-between; }
+        .info-header { font-weight: 800; border-bottom: 2px solid #000; margin-bottom: 10px; padding-bottom: 5px; font-size: 1.1em; }
         
-        .vs-grid { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 15px; }
-        .equipo { font-size: 0.9em; }
+        .vs-grid { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 10px; }
+        .equipo { font-size: 0.85em; }
+        .vs-label { font-weight: bold; align-self: center; }
         
-        .jugador-fila { display: flex; align-items: center; margin-bottom: 8px; min-height: 35px; }
-        .avatar { width: 30px; height: 30px; border-radius: 50%; border: 1px solid #000; margin-right: 10px; object-fit: cover; background: #ddd; }
-        .vs-label { font-weight: bold; font-style: italic; align-self: center; }
-        .estado-badge { font-size: 0.7em; background: #fff; padding: 2px 6px; border: 1px solid #000; border-radius: 4px; }
+        .jugador-fila { display: flex; align-items: center; margin-bottom: 5px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Partidas</h1>
-        <div id="resultado">Cargando partidas...</div>
+        <div id="resultado">Cargando...</div>
     </div>
 
     <script>
         async function cargarPartidas() {
-            const container = document.getElementById('resultado');
             try {
                 const res = await fetch('/api/proxy');
                 const html = await res.text();
                 const doc = new DOMParser().parseFromString(html, 'text/html');
                 
-                // Buscamos los bloques que contienen las partidas (usualmente filas de tablas)
-                const filasPartida = doc.querySelectorAll('tr'); // Ajusta según la estructura real de tu web
+                // Buscamos los bloques de cada partido basándonos en la estructura de filas
+                const filas = doc.querySelectorAll('tr'); 
                 let htmlResultado = '';
                 
-                filasPartida.forEach((fila) => {
-                    const textoFila = fila.innerText;
-                    // Solo procesamos si contiene hora y pista
-                    if (/\d{1,2}:\d{2}/.test(textoFila) && textoFila.includes('Pista')) {
-                        const hora = textoFila.match(/\d{1,2}:\d{2}/)?.[0] || "";
-                        const pista = textoFila.includes('Pista') ? textoFila.split('Pista')[1].trim().substring(0, 1) : "?";
-                        const estado = textoFila.includes('Cerrada') ? 'Cerrada' : 'Abierta';
+                filas.forEach((fila) => {
+                    const texto = fila.innerText;
+                    
+                    // Solo procesar si la fila contiene una hora de partido
+                    if (/\d{1,2}:\d{2}/.test(texto) && !texto.includes('function') && !texto.includes('style')) {
+                        const hora = texto.match(/\d{1,2}:\d{2}/)[0];
                         
-                        // Extraemos imágenes de esta fila específica
-                        const imgs = fila.querySelectorAll('img');
-                        // Extraemos nombres limpiando código basura
-                        const nombres = textoFila.split('\n')
-                            .map(n => n.trim())
-                            .filter(n => n.length > 3 && !/[{;]/.test(n) && !/Pista|Cerrada|Abierta|Niveles/i.test(n));
-
-                        const generarFila = (i) => {
-                            const nombre = nombres[i] || "Disponible";
-                            let src = imgs[i] ? imgs[i].getAttribute('src') : null;
-                            if (src && !src.startsWith('http')) src = 'https://www.padelalborayaindoor.com/' + src.replace(/^\/+/, '');
-                            
-                            return `<div class="jugador-fila">
-                                        <img src="${src || ''}" class="avatar" onerror="this.style.display='none'"> 
-                                        ${nombre}
-                                    </div>`;
-                        };
-
-                        htmlResultado += `
-                            <div class="partida-card">
-                                <div class="info-header"><span>${hora} - Pista ${pista}</span><span class="estado-badge">${estado}</span></div>
-                                <div class="vs-grid">
-                                    <div class="equipo">${generarFila(0)}${generarFila(1)}</div>
-                                    <div class="vs-label">VS</div>
-                                    <div class="equipo">${generarFila(2)}${generarFila(3)}</div>
-                                </div>
-                            </div>`;
+                        // Filtramos para obtener solo nombres de personas (quitando clases CSS y basura)
+                        const lineas = texto.split('\n')
+                            .map(l => l.trim())
+                            .filter(l => l.length > 3 && !l.includes('{') && !l.includes('>') && !l.includes('resize') && !l.includes('display'));
+                        
+                        // Extraemos los nombres (buscando patrones de texto que parecen nombres)
+                        const nombres = lineas.filter(l => /[a-zA-Z]{3,}/.test(l)).slice(0, 4);
+                        
+                        if (nombres.length > 0) {
+                            htmlResultado += `
+                                <div class="partida-card">
+                                    <div class="info-header">${hora} - Pista</div>
+                                    <div class="vs-grid">
+                                        <div class="equipo">
+                                            <div class="jugador-fila">${nombres[0] || '---'}</div>
+                                            <div class="jugador-fila">${nombres[1] || '---'}</div>
+                                        </div>
+                                        <div class="vs-label">VS</div>
+                                        <div class="equipo">
+                                            <div class="jugador-fila">${nombres[2] || '---'}</div>
+                                            <div class="jugador-fila">${nombres[3] || '---'}</div>
+                                        </div>
+                                    </div>
+                                </div>`;
+                        }
                     }
                 });
-                container.innerHTML = htmlResultado || "No hay partidas.";
-            } catch (e) { container.innerHTML = "Error al conectar."; }
+                document.getElementById('resultado').innerHTML = htmlResultado || "No se encontraron partidas.";
+            } catch (e) { document.getElementById('resultado').innerHTML = "Error al procesar los datos."; }
         }
-        document.addEventListener('DOMContentLoaded', cargarPartidas);
+        cargarPartidas();
     </script>
 </body>
 </html>
