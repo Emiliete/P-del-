@@ -26,50 +26,45 @@
     </div>
 
     <script>
-        async function cargarPartidas() {
-            try {
-                const res = await fetch('/api/proxy');
-                const html = await res.text();
-                const doc = new DOMParser().parseFromString(html, 'text/html');
+    async function cargarPartidas() {
+        try {
+            const res = await fetch('/api/proxy');
+            const html = await res.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            
+            // Dividimos por Pista, pero filtramos bloques vacíos
+            const bloques = doc.body.innerText.split('Pista').filter(b => b.includes(':'));
+            let htmlResultado = '';
+            
+            bloques.forEach((bloque) => {
+                const hora = bloque.match(/\d{1,2}:\d{2}/)[0];
+                const pista = bloque.substring(0, 2).trim();
                 
-                // Seleccionamos todos los contenedores de "partida"
-                const cuadros = doc.querySelectorAll('.participanteCuadro'); // Ajusta este selector según la web real
-                let htmlResultado = '';
+                // Limpieza maestra: quitamos todo lo que no sea el nombre
+                // Buscamos líneas que contengan nombres (suelen tener un guion o punto después del nivel)
+                const lineas = bloque.split('\n')
+                    .map(l => l.trim())
+                    .filter(l => l.length > 5 && !l.includes('Cerrada') && !l.includes('Niveles'));
                 
-                // Vamos a buscar los bloques de texto que contienen las partidas
-                const bloques = doc.body.innerText.split('Pista');
-                
-                bloques.forEach((bloque) => {
-                    if (/\d{1,2}:\d{2}/.test(bloque)) {
-                        const hora = bloque.match(/\d{1,2}:\d{2}/)[0];
-                        
-                        // Filtramos para que solo coja texto que parezca un nombre (sin basura de CSS)
-                        const lineas = bloque.split('\n').filter(l => l.length > 3 && !l.includes('{') && !l.includes('resize'));
-                        
-                        // Extraemos nombres (están después del nivel/número)
-                        const nombres = lineas.filter(l => /[a-zA-Z]{3,}/.test(l)).slice(0, 4);
-                        
-                        let equipoA = "", equipoB = "";
-                        nombres.forEach((n, i) => {
-                            let item = `<div class="jugador-item"><span>${n.substring(0, 18)}</span></div>`;
-                            if (i < 2) equipoA += item; else equipoB += item;
-                        });
+                // Dividimos los nombres encontrados en equipo A y B
+                const nombres = lineas.filter(l => /[a-zA-Z]{3,}/.test(l));
+                const equipoA = nombres.slice(0, 2).join('<br>');
+                const equipoB = nombres.slice(2, 4).join('<br>');
 
-                        htmlResultado += `
-                            <div class="partida-card">
-                                <div class="info-header">${hora} - Pista ${bloque.substring(0, 2).trim()}</div>
-                                <div class="vs-grid">
-                                    <div class="equipo">${equipoA || "No disponible"}</div>
-                                    <div class="vs-label">VS</div>
-                                    <div class="equipo">${equipoB || "No disponible"}</div>
-                                </div>
-                            </div>`;
-                    }
-                });
-                document.getElementById('resultado').innerHTML = htmlResultado;
-            } catch (e) { document.getElementById('resultado').innerHTML = "Error al cargar."; }
-        }
-        cargarPartidas();
-    </script>
+                htmlResultado += `
+                    <div class="partida-card">
+                        <div class="info-header">${hora} - Pista ${pista}</div>
+                        <div class="vs-grid">
+                            <div class="equipo">${equipoA || "Esperando..."}</div>
+                            <div class="vs-label">VS</div>
+                            <div class="equipo">${equipoB || "Esperando..."}</div>
+                        </div>
+                    </div>`;
+            });
+            document.getElementById('resultado').innerHTML = htmlResultado;
+        } catch (e) { document.getElementById('resultado').innerHTML = "Error al cargar."; }
+    }
+    cargarPartidas();
+</script>
 </body>
 </html>
