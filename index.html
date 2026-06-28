@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Partidas - Padel Alboraya</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #fdfdfd; padding: 20px; color: #000; }
+        body { font-family: -apple-system, sans-serif; background-color: #fdfdfd; padding: 20px; color: #000; }
         .container { max-width: 600px; margin: 0 auto; }
         h1 { text-align: center; color: #2e7d32; border-bottom: 3px solid #000; padding-bottom: 10px; margin-bottom: 25px; }
         
@@ -16,7 +16,7 @@
         .equipo { font-size: 0.9em; }
         
         .jugador-fila { display: flex; align-items: center; margin-bottom: 8px; min-height: 35px; }
-        .avatar { width: 30px; height: 30px; border-radius: 50%; border: 1px solid #000; margin-right: 10px; object-fit: cover; background: #ccc; }
+        .avatar { width: 30px; height: 30px; border-radius: 50%; border: 1px solid #000; margin-right: 10px; object-fit: cover; background: #ddd; }
         .vs-label { font-weight: bold; font-style: italic; align-self: center; }
         .estado-badge { font-size: 0.7em; background: #fff; padding: 2px 6px; border: 1px solid #000; border-radius: 4px; }
     </style>
@@ -35,48 +35,46 @@
                 const html = await res.text();
                 const doc = new DOMParser().parseFromString(html, 'text/html');
                 
-                // Limpieza de elementos que ensucian el DOM
-                doc.querySelectorAll('style, script, .participanteCuadro').forEach(el => el.remove());
-                
-                const imagenes = Array.from(doc.querySelectorAll('img'));
-                const bloques = doc.body.innerText.split('Pista').filter(b => /\d{1,2}:\d{2}/.test(b));
+                // Buscamos los bloques que contienen las partidas (usualmente filas de tablas)
+                const filasPartida = doc.querySelectorAll('tr'); // Ajusta según la estructura real de tu web
                 let htmlResultado = '';
                 
-                bloques.forEach((bloque, idx) => {
-                    const hora = bloque.match(/\d{1,2}:\d{2}/)?.[0] || "";
-                    const pista = bloque.substring(0, 2).trim();
-                    const estado = bloque.includes('Cerrada') ? 'Cerrada' : 'Abierta';
-                    
-                    const lineas = bloque.split('\n')
-                        .map(l => l.trim())
-                        .filter(l => l.length > 3 && !/[{;=><]/.test(l) && !/Cerrada|Niveles|Abierta|Eq\./i.test(l));
-                    
-                    const nombres = lineas.filter(l => /[a-zA-Z]{3,}/.test(l)).slice(0, 4);
-
-                    const generarJugador = (i) => {
-                        const nombre = nombres[i] || "Disponible";
-                        let imgObj = imagenes[i + (idx * 4)];
-                        let src = imgObj ? imgObj.getAttribute('src') : null;
+                filasPartida.forEach((fila) => {
+                    const textoFila = fila.innerText;
+                    // Solo procesamos si contiene hora y pista
+                    if (/\d{1,2}:\d{2}/.test(textoFila) && textoFila.includes('Pista')) {
+                        const hora = textoFila.match(/\d{1,2}:\d{2}/)?.[0] || "";
+                        const pista = textoFila.includes('Pista') ? textoFila.split('Pista')[1].trim().substring(0, 1) : "?";
+                        const estado = textoFila.includes('Cerrada') ? 'Cerrada' : 'Abierta';
                         
-                        // Forzamos ruta absoluta
-                        if (src && !src.startsWith('http')) {
-                            src = 'https://www.padelalborayaindoor.com/' + src.replace(/^\/+/, '');
-                        }
+                        // Extraemos imágenes de esta fila específica
+                        const imgs = fila.querySelectorAll('img');
+                        // Extraemos nombres limpiando código basura
+                        const nombres = textoFila.split('\n')
+                            .map(n => n.trim())
+                            .filter(n => n.length > 3 && !/[{;]/.test(n) && !/Pista|Cerrada|Abierta|Niveles/i.test(n));
 
-                        return src ? 
-                            `<div class="jugador-fila"><img src="${src}" class="avatar" onerror="this.onerror=null; this.style.display='none';"> ${nombre}</div>` : 
-                            `<div class="jugador-fila"><div class="avatar"></div> ${nombre}</div>`;
-                    };
+                        const generarFila = (i) => {
+                            const nombre = nombres[i] || "Disponible";
+                            let src = imgs[i] ? imgs[i].getAttribute('src') : null;
+                            if (src && !src.startsWith('http')) src = 'https://www.padelalborayaindoor.com/' + src.replace(/^\/+/, '');
+                            
+                            return `<div class="jugador-fila">
+                                        <img src="${src || ''}" class="avatar" onerror="this.style.display='none'"> 
+                                        ${nombre}
+                                    </div>`;
+                        };
 
-                    htmlResultado += `
-                        <div class="partida-card">
-                            <div class="info-header"><span>${hora} - Pista ${pista}</span><span class="estado-badge">${estado}</span></div>
-                            <div class="vs-grid">
-                                <div class="equipo">${generarJugador(0)}${generarJugador(1)}</div>
-                                <div class="vs-label">VS</div>
-                                <div class="equipo">${generarJugador(2)}${generarJugador(3)}</div>
-                            </div>
-                        </div>`;
+                        htmlResultado += `
+                            <div class="partida-card">
+                                <div class="info-header"><span>${hora} - Pista ${pista}</span><span class="estado-badge">${estado}</span></div>
+                                <div class="vs-grid">
+                                    <div class="equipo">${generarFila(0)}${generarFila(1)}</div>
+                                    <div class="vs-label">VS</div>
+                                    <div class="equipo">${generarFila(2)}${generarFila(3)}</div>
+                                </div>
+                            </div>`;
+                    }
                 });
                 container.innerHTML = htmlResultado || "No hay partidas.";
             } catch (e) { container.innerHTML = "Error al conectar."; }
