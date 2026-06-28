@@ -1,4 +1,19 @@
-// api/partidas.js
+const axios = require('axios');
+const cheerio = require('cheerio');
+
+module.exports = async (req, res) => {
+  try {
+    const { data } = await axios.get('https://www.padellaborayaindoor.com/Matches/Grid.aspx');
+    const $ = cheerio.load(data);
+    
+    const lista = [];
+    // ... tu lógica de scraping ...
+    
+    res.status(200).json({ partidas: lista });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};// api/partidas.js
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
