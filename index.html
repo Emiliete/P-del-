@@ -34,11 +34,9 @@
                 const html = await res.text();
                 const doc = new DOMParser().parseFromString(html, 'text/html');
                 
-                // Limpiar basura técnica del DOM antes de extraer
+                // Limpiar basura técnica
                 doc.querySelectorAll('script, style, link, meta, .participanteCuadro').forEach(e => e.remove());
                 
-                // Suponiendo que cada partida está en una fila de tabla o bloque identificable
-                // Cambia 'tr' por el selector que englobe una partida completa en el sitio original
                 const bloques = doc.querySelectorAll('tr'); 
                 let htmlResultado = '';
                 
@@ -48,16 +46,18 @@
                         const hora = texto.match(/\d{1,2}:\d{2}/)[0];
                         const estado = texto.includes('Cerrada') ? 'Cerrada' : 'Abierta';
                         
-                        // Extraer nombres limpiamente: buscamos las líneas que contienen texto de jugador
-                        const nombres = texto.split('\n')
+                        // FILTRO MEJORADO: Ignoramos "Eq. A", "Eq. B", y basura de código
+                        const lineas = texto.split('\n')
                             .map(l => l.trim())
-                            .filter(l => l.length > 3 && !/[{;]/.test(l) && !/Pista|Cerrada|Abierta|Niveles/i.test(l));
+                            .filter(l => l.length > 3 && 
+                                         !/[{;]/.test(l) && 
+                                         !/Pista|Cerrada|Abierta|Niveles|Eq\./i.test(l));
                         
-                        // Obtener imágenes vinculadas a este bloque específico
-                        const imagenes = bloque.querySelectorAll('img');
+                        const nombres = lineas.filter(l => /[a-zA-Z]{3,}/.test(l)).slice(0, 4);
 
                         const generarJugador = (idx) => {
                             const nombre = nombres[idx] || "Disponible";
+                            const imagenes = bloque.querySelectorAll('img');
                             let src = imagenes[idx] ? imagenes[idx].getAttribute('src') : null;
                             if (src && !src.startsWith('http')) src = 'https://www.padelalborayaindoor.com/' + src.replace(/^\/+/, '');
                             
