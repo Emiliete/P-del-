@@ -8,12 +8,11 @@
         table { width: 100%; border-collapse: collapse; background: white; }
         th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
         th { background: #2e7d32; color: white; }
-        .info { color: #555; font-size: 0.8em; }
     </style>
 </head>
 <body>
     <h1>Partidas Programadas</h1>
-    <div id="resultado">Buscando datos...</div>
+    <div id="resultado">Procesando...</div>
 
     <script>
         async function cargar() {
@@ -21,22 +20,27 @@
                 const res = await fetch('/api/proxy');
                 const html = await res.text();
                 const doc = new DOMParser().parseFromString(html, 'text/html');
-                
-                // Buscamos todas las filas de todas las tablas
                 const filas = doc.querySelectorAll('tr');
-                let tablaHtml = '<table><tr><th>Posible Hora</th><th>Contenido de la fila</th></tr>';
-                let encontrado = false;
-
+                
+                let tablaHtml = '<table><tr><th>Pista</th><th>Hora</th></tr>';
+                
                 filas.forEach(f => {
                     const texto = f.innerText.trim();
-                    // Buscamos filas que tengan formato de hora (ej: 18:30)
-                    if (/\d{1,2}:\d{2}/.test(texto)) {
-                        tablaHtml += `<tr><td>${texto.match(/\d{1,2}:\d{2}/)[0]}</td><td>${texto.substring(0, 100)}...</td></tr>`;
-                        encontrado = true;
+                    // Buscamos filas que tengan "Pista" y una hora
+                    if (texto.includes('Pista') && /\d{1,2}:\d{2}/.test(texto)) {
+                        // Limpiamos el texto: quitamos el CSS y nos quedamos con lo importante
+                        const datosLimpios = texto.replace(/a\.resize.*?\}/g, '').trim();
+                        const partes = datosLimpios.split('Pista');
+                        
+                        if (partes.length > 1) {
+                            const infoPista = "Pista" + partes[1];
+                            const hora = infoPista.match(/\d{1,2}:\d{2}/)[0];
+                            tablaHtml += `<tr><td>${infoPista.replace(hora, '').trim()}</td><td>${hora}</td></tr>`;
+                        }
                     }
                 });
 
-                document.getElementById('resultado').innerHTML = encontrado ? tablaHtml + '</table>' : "No se encontraron filas con horas. Revisa la consola.";
+                document.getElementById('resultado').innerHTML = tablaHtml + '</table>';
             } catch (e) {
                 document.getElementById('resultado').innerHTML = "Error: " + e.message;
             }
