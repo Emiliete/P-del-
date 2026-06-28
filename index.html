@@ -1,39 +1,49 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Partidas Padel</title>
-    <style>
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        th { background-color: #2e7d32; color: white; }
-        .avatar { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; }
-    </style>
-</head>
-<body>
-
-    <h2>Partidas Programadas</h2>
-    <table id="tablaPartidas">
-        <thead>
-            <tr><th>Hora</th><th>Pista</th><th>Jugadores</th><th>Estado</th></tr>
-        </thead>
-        <tbody id="app"></tbody>
-    </table>
+<div id="app">Cargando...</div>
 
 <script>
-async function procesarPartidas() {
-    try {
-        // 1. Seleccionamos los bloques. Ajusta '.bloque-partida' a la clase real de tu web.
-        const bloques = Array.from(document.querySelectorAll('.bloque-partida')); 
-        let lista = [];
+function iniciar() {
+    // Buscamos todos los elementos que contengan "Pista" (donde empieza cada partida)
+    const elementos = Array.from(document.querySelectorAll('*'));
+    const bloques = elementos.filter(el => el.innerText && el.innerText.includes('Pista') && el.innerText.includes(':'));
+    
+    let lista = [];
 
-        bloques.forEach(bloque => {
-            const horaText = bloque.querySelector('.hora')?.innerText || "00:00";
-            const pista = parseInt(bloque.querySelector('.pista')?.innerText || 0);
-            
-            // Calculamos minutos para ordenar
-            const [h, m] = horaText.split(':').map(Number);
-            
+    bloques.forEach(bloque => {
+        let texto = bloque.innerText;
+        // Extraemos hora y pista
+        let horaMatch = texto.match(/(\d{1,2}:\d{2})/);
+        let pistaMatch = texto.match(/Pista (\d+)/);
+
+        if (horaMatch && pistaMatch) {
+            lista.push({
+                hora: horaMatch[0],
+                minutos: parseInt(horaMatch[0].split(':')[0]) * 60 + parseInt(horaMatch[0].split(':')[1]),
+                pista: pistaMatch[1],
+                contenido: bloque.innerHTML, // Capturamos todo el bloque
+                estado: texto.includes('Completa') ? 'Completa' : 'Disponible'
+            });
+        }
+    });
+
+    // Ordenar
+    lista.sort((a, b) => a.minutos - b.minutos);
+
+    // Mostrar
+    document.getElementById('app').innerHTML = `
+        <table border="1" style="width:100%; border-collapse:collapse;">
+            ${lista.map(p => `
+                <tr>
+                    <td>${p.hora}</td>
+                    <td>P${p.pista}</td>
+                    <td>${p.estado}</td>
+                </tr>
+            `).join('')}
+        </table>`;
+}
+
+// Retraso de 2 segundos para asegurar que la web haya cargado
+setTimeout(iniciar, 2000);
+</script>
             lista.push({
                 hora: horaText,
                 minutos: (h * 60) + m,
