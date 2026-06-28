@@ -12,7 +12,7 @@
 </head>
 <body>
     <h1>Partidas Programadas</h1>
-    <div id="resultado">Procesando...</div>
+    <div id="resultado">Procesando datos...</div>
 
     <script>
         async function cargar() {
@@ -22,25 +22,21 @@
                 const doc = new DOMParser().parseFromString(html, 'text/html');
                 const filas = doc.querySelectorAll('tr');
                 
-                let tablaHtml = '<table><tr><th>Pista</th><th>Hora</th></tr>';
+                let tablaHtml = '<table><tr><th>Información</th></tr>';
+                let filasEncontradas = 0;
                 
                 filas.forEach(f => {
                     const texto = f.innerText.trim();
-                    // Buscamos filas que tengan "Pista" y una hora
-                    if (texto.includes('Pista') && /\d{1,2}:\d{2}/.test(texto)) {
-                        // Limpiamos el texto: quitamos el CSS y nos quedamos con lo importante
-                        const datosLimpios = texto.replace(/a\.resize.*?\}/g, '').trim();
-                        const partes = datosLimpios.split('Pista');
-                        
-                        if (partes.length > 1) {
-                            const infoPista = "Pista" + partes[1];
-                            const hora = infoPista.match(/\d{1,2}:\d{2}/)[0];
-                            tablaHtml += `<tr><td>${infoPista.replace(hora, '').trim()}</td><td>${hora}</td></tr>`;
-                        }
+                    // Buscamos filas relevantes y limpiamos el ruido de CSS
+                    if (texto.includes('Pista')) {
+                        const textoLimpio = texto.replace(/a\.resize.*?\}/g, '').trim();
+                        tablaHtml += `<tr><td>${textoLimpio}</td></tr>`;
+                        filasEncontradas++;
                     }
                 });
 
-                document.getElementById('resultado').innerHTML = tablaHtml + '</table>';
+                document.getElementById('resultado').innerHTML = 
+                    filasEncontradas > 0 ? tablaHtml + '</table>' : "No se encontraron datos de pistas.";
             } catch (e) {
                 document.getElementById('resultado').innerHTML = "Error: " + e.message;
             }
