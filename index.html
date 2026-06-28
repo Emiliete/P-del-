@@ -1,75 +1,22 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Visor de Partidas</title>
-    <style>
-        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-        th { background-color: #2e7d32; color: white; }
-        .foto-jugador { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; margin: 2px; border: 1px solid #ccc; background-size: cover; }
-    </style>
-</head>
-<body>
+// ... dentro de tu bucle bloques.forEach ...
 
-    <h1>Partidas Programadas</h1>
-    <div id="tabla-resultado">Procesando...</div>
+// Buscamos todos los elementos que tienen la clase de jugador
+const elementosJugador = padre.querySelectorAll('.participanteCuadro');
+let fotosHtml = "";
 
-    <script>
-        async function procesar() {
-            try {
-                const response = await fetch('/api/proxy');
-                const htmlTexto = await response.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlTexto, 'text/html');
-
-                // Buscamos los bloques de partida
-                const bloques = doc.querySelectorAll('.gridviewestilocabecera');
-                let lista = [];
-
-                bloques.forEach(cabecera => {
-                    const padre = cabecera.closest('tr') || cabecera.parentElement;
-                    
-                    // Buscamos los contenedores de jugadores (clase .participanteCuadro)
-                    const contenedores = padre.querySelectorAll('.participanteCuadro');
-                    let fotosHtml = "";
-
-                    contenedores.forEach(cont => {
-                        // Extraemos la URL del fondo (background-image)
-                        const style = cont.getAttribute('style') || "";
-                        const match = style.match(/url\(['"]?([^'"]+)['"]?\)/);
-                        
-                        if (match) {
-                            let src = match[1];
-                            if (!src.startsWith('http')) {
-                                src = 'https://www.padellaborayaindoor.com' + src.replace('..', '');
-                            }
-                            fotosHtml += `<div class="foto-jugador" style="display:inline-block; background-image: url('${src}');"></div>`;
-                        }
-                    });
-
-                    lista.push({
-                        hora: cabecera.innerText.match(/(\d{1,2}:\d{2})/)?.[0] || "",
-                        fotos: fotosHtml,
-                        estado: padre.innerText.includes('Cerrada') ? 'Cerrada' : 'Disponible'
-                    });
-                });
-
-                // Dibujar
-                let html = `<table><tr><th>Hora</th><th>Jugadores</th><th>Estado</th></tr>`;
-                lista.forEach(p => {
-                    if(p.hora) {
-                        html += `<tr><td>${p.hora}</td><td>${p.fotos}</td><td>${p.estado}</td></tr>`;
-                    }
-                });
-                document.getElementById('tabla-resultado').innerHTML = html + `</table>`;
-
-            } catch (err) {
-                document.getElementById('tabla-resultado').innerHTML = "Error: " + err.message;
-            }
+elementosJugador.forEach(el => {
+    // 1. Buscamos el estilo que contiene la URL de la imagen
+    const style = el.getAttribute('style') || "";
+    // Buscamos el patrón "url(...)"
+    const match = style.match(/url\(['"]?([^'"]+)['"]?\)/);
+    
+    if (match) {
+        let src = match[1];
+        // Aseguramos URL absoluta
+        if (!src.startsWith('http')) {
+            src = 'https://www.padelalborayaindoor.com' + src.replace('..', '');
         }
-        procesar();
-    </script>
-</body>
-</html>
+        // Creamos la imagen
+        fotosHtml += `<img src="${src}" class="foto-jugador" onerror="this.style.display='none'">`;
+    }
+});
