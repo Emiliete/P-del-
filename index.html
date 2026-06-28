@@ -1,39 +1,43 @@
-async function procesarPartidas() {
-    try {
-        // Seleccionamos todos los bloques
-        const bloques = document.querySelectorAll('.bloque-partida'); 
-        console.log("Bloques encontrados: " + bloques.length); // MIRA ESTO EN LA CONSOLA
-        
-        let lista = [];
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Visor de Partidas Padel</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f9; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #2e7d32; color: white; }
+        .avatar { width: 30px; height: 30px; border-radius: 50%; }
+    </style>
+</head>
+<body>
 
-        bloques.forEach((bloque, index) => {
-            const horaText = bloque.querySelector('.hora')?.innerText || "00:00";
-            const pista = parseInt(bloque.querySelector('.pista')?.innerText || 0);
-            const [h, m] = horaText.split(':').map(Number);
+    <h2>Partidas Ordenadas</h2>
+    <div id="app">Cargando datos...</div>
+
+    <script>
+        function procesarWeb() {
+            // Buscamos los elementos con la clase que indicaste
+            const elementos = document.querySelectorAll('.gridviewestilocabecera');
             
-            lista.push({
-                hora: horaText,
-                minutos: (h * 60) + m,
-                pista: pista,
-                jugadores: bloque.querySelector('.participanteCuadro')?.innerHTML || "Sin datos",
-                estado: bloque.innerText.includes('Completa') ? 'Completa' : 'Disponible'
-            });
-        });
-
-        console.log("Partidas procesadas:", lista); // MIRA ESTO EN LA CONSOLA
-
-        // Ordenar y renderizar
-        lista.sort((a, b) => a.minutos - b.minutos || a.pista - b.pista);
-        document.getElementById('app').innerHTML = lista.map(p => `
-            <tr>
-                <td>${p.hora}</td>
-                <td>${p.pista}</td>
-                <td>${p.jugadores}</td>
-                <td>${p.estado}</td>
-            </tr>
-        `).join('');
-
-    } catch (e) {
+            // Aquí puedes pegar la lógica de extracción una vez que tengas 
+            // el HTML de la web original copiado dentro de este archivo 
+            // o si ejecutas esto en la consola del navegador.
+            
+            if (elementos.length > 0) {
+                document.getElementById('app').innerHTML = "¡Elementos encontrados! Procediendo a ordenar...";
+                // Lógica de ordenación aquí
+            } else {
+                document.getElementById('app').innerHTML = "No se encontraron elementos con la clase .gridviewestilocabecera";
+            }
+        }
+        
+        // Ejecutar al abrir
+        procesarWeb();
+    </script>
+</body>
+</html>
         console.error("Error detallado:", e);
     }
 }
