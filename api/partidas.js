@@ -1,4 +1,14 @@
-const axios = require('axios');
+module.exports = async (req, res) => {
+  try {
+    // Vamos a enviar un mensaje simple para probar que la API vive
+    res.status(200).json({ 
+      mensaje: "La API está funcionando correctamente",
+      fecha: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Error interno: " + error.message });
+  }
+};const axios = require('axios');
 const cheerio = require('cheerio');
 
 module.exports = async (req, res) => {
