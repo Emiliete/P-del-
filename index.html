@@ -2,64 +2,47 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Partidas - Padel Alboraya</title>
+    <title>Visor Diagnóstico</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; padding: 20px; color: #333; }
-        h1 { text-align: center; color: #2e7d32; }
-        table { width: 100%; max-width: 800px; margin: 20px auto; border-collapse: collapse; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
-        th { background-color: #2e7d32; color: white; }
-        .jugador { background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 4px; padding: 2px 6px; margin: 2px; font-size: 0.9em; display: inline-block; }
-        #resultado { text-align: center; }
+        body { font-family: sans-serif; padding: 20px; line-height: 1.5; }
+        .log { background: #eee; padding: 10px; border-radius: 5px; font-family: monospace; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
     </style>
 </head>
 <body>
-
-    <h1>Partidas Programadas</h1>
-    <div id="resultado">Cargando partidas...</div>
+    <h1>Visor de Partidas</h1>
+    <div id="status" class="log">Conectando...</div>
+    <div id="container"></div>
 
     <script>
-        async function cargarPartidas() {
+        async function diagnostico() {
+            const statusDiv = document.getElementById('status');
             try {
                 const response = await fetch('/api/proxy');
-                const htmlTexto = await response.text();
-                const doc = new DOMParser().parseFromString(htmlTexto, 'text/html');
-                const filas = doc.querySelectorAll('.gridviewestilocabecera');
+                const html = await response.text();
                 
-                let tablaHtml = `<table><tr><th>Hora</th><th>Jugadores</th></tr>`;
+                // Diagnóstico básico
+                const tieneTabla = html.includes('table') || html.includes('gridview');
+                statusDiv.innerHTML = `Conexión exitosa. ¿Contiene tabla?: ${tieneTabla}`;
+
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const filas = doc.querySelectorAll('tr');
                 
-                filas.forEach(cabecera => {
-                    const fila = cabecera.closest('tr');
-                    const horaMatch = cabecera.innerText.match(/\d{1,2}:\d{2}/);
-                    
-                    if (horaMatch) {
-                        const hora = horaMatch[0];
-                        const celdasJugador = fila.querySelectorAll('.participanteCuadro');
-                        let nombres = [];
-
-                        celdasJugador.forEach(celda => {
-                            const nombre = celda.getAttribute('title');
-                            // Filtramos: solo añadimos si tiene nombre y no es texto genérico
-                            if (nombre && nombre.trim() !== "" && nombre.toLowerCase() !== "seleccionar") {
-                                nombres.push(`<span class="jugador">👤 ${nombre}</span>`);
-                            }
-                        });
-
-                        tablaHtml += `<tr>
-                            <td><strong>${hora}</strong></td>
-                            <td>${nombres.length > 0 ? nombres.join(' ') : '<em>Libre</em>'}</td>
-                        </tr>`;
+                let htmlResultado = '<table><tr><th>Contenido encontrado (primeras 5 filas)</th></tr>';
+                
+                filas.forEach((fila, index) => {
+                    if(index < 5) {
+                        htmlResultado += `<tr><td>${fila.innerText.substring(0, 100)}</td></tr>`;
                     }
                 });
 
-                document.getElementById('resultado').innerHTML = tablaHtml + `</table>`;
+                document.getElementById('container').innerHTML = htmlResultado + '</table>';
             } catch (err) {
-                document.getElementById('resultado').innerHTML = "Error al conectar con el servidor.";
-                console.error(err);
+                statusDiv.innerHTML = "Error de conexión: " + err.message;
             }
         }
-        cargarPartidas();
+        diagnostico();
     </script>
 </body>
 </html>
