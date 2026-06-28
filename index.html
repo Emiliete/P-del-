@@ -25,6 +25,64 @@
                 const html = await res.text();
                 const doc = new DOMParser().parseFromString(html, 'text/html');
 
+                // 1. ELIMINACIÓN DE BASURA: Borramos elementos técnicos que ensucian el texto
+                doc.querySelectorAll('script, style, link, meta, .participanteCuadro').forEach(e => e.remove());
+
+                // 2. BUSCAR CONTENEDORES: En lugar de coger todo el TR, buscamos los contenedores que realmente contienen la info
+                // Probamos a identificar bloques por una clase común que tenga el sitio original
+                const bloques = doc.querySelectorAll('tr'); 
+                let htmlResultado = '';
+
+                bloques.forEach(bloque => {
+                    const texto = bloque.innerText.trim();
+                    
+                    // Filtro para detectar si es una fila de partido válida
+                    if (texto.includes('Pista') && /\d{1,2}:\d{2}/.test(texto)) {
+                        
+                        // Extraemos solo el texto que nos interesa limpiándolo de etiquetas de estilo
+                        const lineas = texto.split('\n')
+                            .map(l => l.trim())
+                            .filter(l => l.length > 3 && 
+                                         !l.includes('resize') && 
+                                         !l.includes('{') && 
+                                         !l.includes('margin') &&
+                                         !l.includes('Pista') &&
+                                         !l.includes('Cerrada') &&
+                                         !l.includes('Eq.'));
+
+                        // Solo renderizamos si tenemos al menos los nombres de los 4 jugadores
+                        if (lineas.length >= 4) {
+                            htmlResultado += `
+                            <div class="partida-card">
+                                <div class="info-header">Partida encontrada</div>
+                                <div class="vs-grid">
+                                    <div class="equipo"><!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Partidas - Padel Alboraya</title>
+    <style>
+        body { font-family: sans-serif; background-color: #fcfcfc; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .partida-card { background: #eef7ee; border: 2px solid #2e7d32; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
+        .info-header { font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 10px; }
+        .vs-grid { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 10px; }
+        .jugador { font-size: 0.9em; margin-bottom: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Partidas</h1>
+        <div id="resultado">Cargando...</div>
+    </div>
+
+    <script>
+        async function cargarPartidas() {
+            try {
+                const res = await fetch('/api/proxy');
+                const html = await res.text();
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+
                 // 1. ELIMINACIÓN DE BASURA: Borramos todo lo que no sea contenido útil antes de leer
                 doc.querySelectorAll('script, style, link, meta, img, .participanteCuadro').forEach(e => e.remove());
 
