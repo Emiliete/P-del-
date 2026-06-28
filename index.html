@@ -2,38 +2,38 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Visor de Partidas Padel</title>
+    <title>Gestión de Partidas de Padel</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f4f4f9; }
-        table { width: 100%; border-collapse: collapse; background: white; }
-        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
-        th { background-color: #2e7d32; color: white; }
-        .avatar { width: 30px; height: 30px; border-radius: 50%; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; padding: 20px; }
+        h1 { color: #2e7d32; text-align: center; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        th { background-color: #2e7d32; color: white; padding: 15px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #ddd; vertical-align: middle; }
+        .fotoParticipante { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-right: 5px; border: 2px solid #e0e0e0; }
+        .estado-completa { color: #d32f2f; font-weight: bold; }
+        .estado-disponible { color: #388e3c; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h2>Partidas Ordenadas</h2>
-    <div id="app">Cargando datos...</div>
+    <h1>Partidas Programadas</h1>
+    <div id="app">
+        <table>
+            <thead>
+                <tr>
+                    <th>Hora</th>
+                    <th>Pista</th>
+                    <th>Jugadores</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody id="cuerpo-tabla">
+                </tbody>
+        </table>
+    </div>
 
     <script>
-        function procesarWeb() {
-            // Buscamos los elementos con la clase que indicaste
-            const elementos = document.querySelectorAll('.gridviewestilocabecera');
-            
-            // Aquí puedes pegar la lógica de extracción una vez que tengas 
-            // el HTML de la web original copiado dentro de este archivo 
-            // o si ejecutas esto en la consola del navegador.
-            
-            if (elementos.length > 0) {
-                document.getElementById('app').innerHTML = "¡Elementos encontrados! Procediendo a ordenar...";
-                // Lógica de ordenación aquí
-            } else {
-                document.getElementById('app').innerHTML = "No se encontraron elementos con la clase .gridviewestilocabecera";
-            }
-        }
-        
-        // Ejecutar al abrir
+        function
         procesarWeb();
     </script>
 </body>
