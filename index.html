@@ -5,73 +5,44 @@
     <title>Partidas Padel Alboraya</title>
     <style>
         body { font-family: Arial, sans-serif; background-color: #e8f5e9; padding: 20px; }
-        .container { max-width: 900px; margin: auto; }
+        .container { max-width: 950px; margin: auto; }
+        .match-row { border: 2px solid black; background: #c8e6c9; margin: 8px 0; padding: 10px; border-radius: 8px; font-size: 0.85em; }
         h1 { color: #2e7d32; text-align: center; }
-        .match-row { border: 2px solid black; background: #c8e6c9; margin: 10px 0; padding: 10px; border-radius: 8px; font-size: 0.9em; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Partidas en directo</h1>
-        <div id="app">Cargando partidas...</div>
+        <h1>Partidas y Jugadores</h1>
+        <div id="app">Cargando datos detallados...</div>
     </div>
     <script>
         async function fetchMatches() {
             try {
                 const res = await fetch('/api/proxy');
                 const htmlText = await res.text();
-                const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlText, 'text/html');
+                
                 const container = document.getElementById('app');
                 container.innerHTML = '';
                 
-                // Buscamos todas las filas de la tabla
-                const rows = doc.querySelectorAll('tr');
+                // Buscamos todas las tablas en la página
+                const tables = doc.querySelectorAll('table');
                 
-                rows.forEach(row => {
-                    // Si la fila tiene celdas, las procesamos
-                    if (row.cells.length > 1) {
-                        const div = document.createElement('div');
-                        div.className = 'match-row';
-                        div.innerText = Array.from(row.cells).map(c => c.innerText.trim()).join(' | ');
-                        container.appendChild(div);
-                    }
-                });
-            } catch (e) { container.innerHTML = "Error al procesar el grid."; }
-        }
-        setInterval(fetchMatches, 20000);
-        fetchMatches();
-    </script>
-</body>
-</html>
-                    if (bloque.trim().length > 0) {
-                        const div = document.createElement('div');
-                        div.className = 'match-card';
-                        div.innerHTML = `<div class="hora">Pista ${bloque.substring(0, 20)}...</div>
-                                         <div class="jugadores">Jugadores: [Procesando...]</div>`;
-                        container.appendChild(div);
-                    }
+                tables.forEach(table => {
+                    const rows = table.querySelectorAll('tr');
+                    rows.forEach(row => {
+                        // Filtramos para que solo muestre filas con contenido relevante
+                        if (row.innerText.includes('Pista') || row.innerText.includes('Eq.')) {
+                            const div = document.createElement('div');
+                            div.className = 'match-row';
+                            div.innerText = row.innerText.replace(/\s+/g, ' ').trim();
+                            container.appendChild(div);
+                        }
+                    });
                 });
             } catch (e) {
-                document.getElementById('app').innerHTML = "Error al procesar.";
-            }
-        }
-        setInterval(fetchMatches, 20000);
-        fetchMatches();
-    </script>
-</body>
-</html>
-                        currentPista.innerHTML = `<span class="pista-titulo">${line}</span>`;
-                        container.appendChild(currentPista);
-                    } else if (currentPista && line.startsWith('Pista')) {
-                        const hora = line.replace(/Pista \d+ /i, '');
-                        const span = document.createElement('span');
-                        span.className = 'horario';
-                        span.innerText = hora;
-                        currentPista.appendChild(span);
-                    }
-                });
-            } catch (e) {
-                document.getElementById('app').innerHTML = "Error al procesar.";
+                document.getElementById('app').innerHTML = "Error al extraer la tabla.";
             }
         }
         setInterval(fetchMatches, 20000);
