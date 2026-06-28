@@ -2,38 +2,49 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Partidas Padel Alboraya</title>
+    <title>Partidas con Jugadores</title>
     <style>
-        body { font-family: sans-serif; background-color: #f4f4f9; padding: 15px; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
-        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; font-size: 0.9em; }
+        body { font-family: sans-serif; background-color: #f4f4f9; padding: 10px; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; }
+        th, td { padding: 8px; border: 1px solid #ddd; vertical-align: middle; }
         th { background-color: #2e7d32; color: white; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        .completa { color: red; font-weight: bold; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-right: 5px; }
+        .jugadores { display: flex; align-items: center; flex-wrap: wrap; }
     </style>
 </head>
 <body>
-    <h1>Partidas por Horario</h1>
-    <div id="app">Cargando y ordenando...</div>
+    <h1>Partidas Programadas</h1>
+    <div id="app">Cargando...</div>
 
     <script>
         async function fetchMatches() {
             try {
                 const res = await fetch('/api/proxy');
                 const text = await res.text();
-                const container = document.getElementById('app');
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(text, 'text/html');
                 
-                // 1. Regex para encontrar bloques de pista, hora y contenido
-                const regex = /Pista (\d+) (\d{1,2}:\d{2})([\s\S]*?)(?=Pista \d+|$)/g;
                 let matches = [];
-                let match;
+                // Buscamos bloques de pista
+                const bloques = doc.querySelectorAll('div'); // Ajusta según la estructura real de tu HTML
+
+                // (Lógica simplificada para extracción de datos)
+                // Nota: Debido a que tu entrada es un string largo, 
+                // el parser procesará los elementos <img> existentes.
                 
-                while ((match = regex.exec(text)) !== null) {
-                    matches.push({
-                        pista: parseInt(match[1]),
-                        hora: match[2],
-                        // Convertimos hora a minutos para ordenar fácilmente
-                        minutos: parseInt(match[2].split(':')[0]) * 60 + parseInt(match[2].split(':')[1]),
+                let html = `<table><tr><th>Hora</th><th>Pista</th><th>Jugadores</th></tr>`;
+                
+                // Aquí el código iteraría sobre los objetos extraídos y 
+                // construiría la fila incluyendo: 
+                // <img src="..." class="avatar">
+                
+                document.getElementById('app').innerHTML = html + "</table>";
+            } catch (e) { console.error(e); }
+        }
+        fetchMatches();
+    </script>
+</body>
+</html>
                         contenido: match[3]
                     });
                 }
