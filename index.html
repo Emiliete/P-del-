@@ -2,17 +2,16 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Par - Padel Alboraya</title>
+    <title>Partidas</title>
     <style>
-        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
-        .card { background: #fff; border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
-        .header { font-weight: bold; border-bottom: 1px solid #eee; margin-bottom: 10px; color: #2e7d32; }
-        .jugador { font-size: 0.9em; margin: 4px 0; }
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+        .card { background: #fff; border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 8px; }
+        .header { font-weight: bold; border-bottom: 2px solid #2e7d32; margin-bottom: 8px; padding-bottom: 5px; }
+        .jugador { font-size: 0.9em; margin: 2px 0; }
     </style>
 </head>
 <body>
     <div id="app">Cargando...</div>
-
     <script>
         async function cargar() {
             try {
@@ -20,28 +19,28 @@
                 const html = await res.text();
                 const doc = new DOMParser().parseFromString(html, 'text/html');
 
-                // 1. LIMPIEZA AGRESIVA: Eliminamos del DOM todo lo que causa ruido
-                doc.querySelectorAll('script, style, link, img, .btn, .categoria, [style]').forEach(e => e.remove());
+                // Eliminamos elementos que sabemos que son basura
+                doc.querySelectorAll('script, style, img, .btn, .categoria, .no-disponible, [style*="display: none"]').forEach(e => e.remove());
 
-                const filas = doc.querySelectorAll('tr, div[class*="pista"]');
                 let htmlResultado = '';
+                // Buscamos contenedores que tengan información de pista
+                const bloques = doc.querySelectorAll('tr, div[class*="grid"]');
 
-                filas.forEach(el => {
-                    const texto = el.innerText.trim();
-                    
-                    // Solo si la fila tiene datos reales (hora + Pista)
+                bloques.forEach(bloque => {
+                    const texto = bloque.innerText.trim();
+                    // Solo procesamos si contiene "Pista" y una hora
                     if (texto.includes('Pista') && /\d{1,2}:\d{2}/.test(texto)) {
                         
-                        // Separamos las líneas y eliminamos las que contienen basura técnica
+                        // Obtenemos solo el texto limpio de nombres y niveles, ignorando botones
                         const lineas = texto.split('\n')
                             .map(l => l.trim())
-                            .filter(l => l.length > 3 && 
-                                         !l.includes('resize') && 
-                                         !l.includes('max-width') &&
-                                         !l.includes('margin') &&
-                                         !l.includes('Eq.'));
+                            .filter(l => l.length > 5 && 
+                                         !l.toLowerCase().includes('apuntarse') && 
+                                         !l.toLowerCase().includes('completa') &&
+                                         !l.toLowerCase().includes('no disponible'));
 
-                        if (lineas.length > 0) {
+                        // Evitamos duplicados comparando con el último bloque procesado
+                        if (htmlResultado.indexOf(lineas[0]) === -1) {
                             htmlResultado += `<div class="card">
                                 <div class="header">${lineas[0]}</div>
                                 ${lineas.slice(1).map(l => `<div class="jugador">${l}</div>`).join('')}
@@ -49,10 +48,9 @@
                         }
                     }
                 });
-                
                 document.getElementById('app').innerHTML = htmlResultado || "No hay partidas.";
             } catch (e) {
-                document.getElementById('app').innerHTML = "Error al conectar.";
+                document.getElementById('app').innerHTML = "Error.";
             }
         }
         cargar();
