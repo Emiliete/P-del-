@@ -7,8 +7,9 @@
         body { font-family: Arial, sans-serif; background-color: #e8f5e9; padding: 20px; }
         .container { max-width: 800px; margin: auto; }
         h1 { color: #2e7d32; text-align: center; }
-        .match-card { border: 2px solid black; background: #c8e6c9; margin: 15px 0; padding: 15px; border-radius: 8px; }
-        .pista-titulo { font-weight: bold; font-size: 1.2em; border-bottom: 1px solid black; margin-bottom: 10px; display: block; }
+        .pista-card { border: 2px solid black; background: #c8e6c9; margin: 15px 0; padding: 15px; border-radius: 8px; }
+        .pista-titulo { font-weight: bold; font-size: 1.3em; border-bottom: 2px solid black; display: block; margin-bottom: 10px; padding-bottom: 5px; }
+        .horario { display: inline-block; background: #a5d6a7; margin: 3px; padding: 5px 10px; border-radius: 4px; border: 1px solid #2e7d32; }
     </style>
 </head>
 <body>
@@ -21,28 +22,28 @@
             try {
                 const res = await fetch('/api/proxy');
                 const htmlText = await res.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlText, 'text/html');
+                const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+                const lines = doc.body.innerText.split('\n').map(l => l.trim()).filter(l => l !== "");
                 
-                // Buscamos los elementos que contienen la info de pistas
-                // (Esto es una aproximación basada en cómo suelen estructurarse estas webs)
                 const container = document.getElementById('app');
-                container.innerHTML = ''; // Limpiamos
-
-                // Buscamos todos los textos que empiecen por "Pista"
-                const textContent = doc.body.innerText;
-                const lines = textContent.split('\n');
+                container.innerHTML = '';
+                
+                let currentPista = null;
                 
                 lines.forEach(line => {
-                    if (line.includes('Pista')) {
-                        const div = document.createElement('div');
-                        div.className = 'match-card';
-                        div.innerHTML = `<span class="pista-titulo">${line}</span>`;
-                        container.appendChild(div);
+                    if (line.startsWith('Pista') && !line.match(/\d:\d\d/)) {
+                        currentPista = document.createElement('div');
+                        currentPista.className = 'pista-card';
+                        currentPista.innerHTML = `<span class="pista-titulo">${line}</span>`;
+                        container.appendChild(currentPista);
+                    } else if (currentPista && line.startsWith('Pista')) {
+                        const hora = line.replace(/Pista \d+ /i, '');
+                        const span = document.createElement('span');
+                        span.className = 'horario';
+                        span.innerText = hora;
+                        currentPista.appendChild(span);
                     }
                 });
-                
-                if (container.innerHTML === '') container.innerHTML = "No se pudieron procesar los detalles. Revisa la web original.";
             } catch (e) {
                 document.getElementById('app').innerHTML = "Error al procesar.";
             }
