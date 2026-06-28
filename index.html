@@ -2,12 +2,13 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Visor de Partidas</title>
+    <title>Padel Alboraya - Partidas</title>
     <style>
         body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; background: white; }
-        th, td { border: 1px solid #ccc; padding: 10px; }
+        table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 12px; }
         th { background: #2e7d32; color: white; }
+        .fila-partida { border-bottom: 1px solid #ddd; }
     </style>
 </head>
 <body>
@@ -20,22 +21,30 @@
                 const res = await fetch('/api/proxy');
                 const html = await res.text();
                 const doc = new DOMParser().parseFromString(html, 'text/html');
-                const textoCompleto = doc.body.innerText;
                 
-                // Dividimos el texto gigante cada vez que aparece "Pista"
-                const filas = textoCompleto.split('Pista').filter(f => f.trim().length > 10);
+                // Extraemos el texto limpio del cuerpo
+                const texto = doc.body.innerText;
                 
-                let tablaHtml = '<table><tr><th>Partida encontrada</th></tr>';
+                // Dividimos por "Pista"
+                const lineas = texto.split('Pista');
                 
-                filas.forEach(f => {
-                    // Limpiamos basura (códigos CSS que se colaron)
-                    const limpia = f.replace(/a\.resize.*?\}/g, '').replace(/\.participanteCuadro.*?block\}/g, '');
-                    tablaHtml += `<tr><td>Pista ${limpia.trim()}</td></tr>`;
+                let tablaHtml = '<table><tr><th>Partida</th></tr>';
+                
+                lineas.forEach(l => {
+                    // Solo mostramos si contiene una hora (ej: 11:15, 8:15)
+                    if (l.match(/\d{1,2}:\d{2}/)) {
+                        // Limpiamos basura de CSS/JS que vimos en la captura
+                        let limpia = l.replace(/a\.resize.*?\}\}/g, '')
+                                      .replace(/function.*?\}\);/g, '')
+                                      .replace(/\.participanteCuadro.*?block\}/g, '');
+                        
+                        tablaHtml += `<tr class="fila-partida"><td><strong>Pista</strong> ${limpia.trim()}</td></tr>`;
+                    }
                 });
 
                 document.getElementById('resultado').innerHTML = tablaHtml + '</table>';
             } catch (e) {
-                document.getElementById('resultado').innerHTML = "Error: " + e.message;
+                document.getElementById('resultado').innerHTML = "Error al procesar: " + e.message;
             }
         }
         cargar();
