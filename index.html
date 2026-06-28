@@ -5,13 +5,11 @@
     <title>Partidas - Padel Alboraya</title>
     <style>
         body { font-family: sans-serif; background-color: #fcfcfc; padding: 20px; }
-        .container { max-width: 700px; margin: 0 auto; }
-        h1 { text-align: center; color: #2e7d32; }
+        .container { max-width: 600px; margin: 0 auto; }
         .partida-card { background: #eef7ee; border: 2px solid #2e7d32; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
-        .info-header { font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 10px; display: flex; justify-content: space-between; }
-        .vs-grid { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; }
-        .jugador { display: flex; align-items: center; gap: 10px; margin: 5px 0; }
-        .avatar { width: 35px; height: 35px; border-radius: 50%; background: #ddd; object-fit: cover; }
+        .info-header { font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 10px; }
+        .vs-grid { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 10px; }
+        .jugador { font-size: 0.9em; margin-bottom: 4px; }
     </style>
 </head>
 <body>
@@ -27,58 +25,51 @@
                 const html = await res.text();
                 const doc = new DOMParser().parseFromString(html, 'text/html');
 
-                // 1. ELIMINACIÓN DE BASURA: Borramos todo lo que no sea contenido útil
-                doc.querySelectorAll('script, style, link, meta, .participanteCuadro').forEach(e => e.remove());
+                // 1. ELIMINACIÓN DE BASURA: Borramos todo lo que no sea contenido útil antes de leer
+                doc.querySelectorAll('script, style, link, meta, img, .participanteCuadro').forEach(e => e.remove());
 
-                // 2. BUSCAR FILAS: Seleccionamos las filas (tr) de las tablas de partidas
+                // 2. BUSCAR FILAS: Seleccionamos las filas (tr) de las tablas
                 const filas = doc.querySelectorAll('tr');
                 let htmlResultado = '';
 
                 filas.forEach(fila => {
-                    // Validar que la fila contiene datos de una partida
-                    if (fila.innerText.includes('Pista') && /\d{1,2}:\d{2}/.test(fila.innerText)) {
-                        const texto = fila.innerText;
-                        const hora = texto.match(/\d{1,2}:\d{2}/)?.[0] || "";
+                    const texto = fila.innerText.trim();
+                    // Filtro estricto: solo filas que contengan una hora y la palabra Pista
+                    if (/\d{1,2}:\d{2}/.test(texto) && texto.includes('Pista')) {
                         
-                        // Extraer imágenes de esta fila específica
-                        const imgs = fila.querySelectorAll('img');
-                        
-                        // Extraer nombres limpiando basura técnica
-                        const nombres = texto.split('\n')
+                        // Limpieza de nombres: eliminamos manualmente las etiquetas de equipo y código
+                        const lineas = texto.split('\n')
                             .map(l => l.trim())
-                            .filter(l => l.length > 3 && !/[{;]/.test(l) && !/Pista|Cerrada|Abierta|Niveles|Eq\./i.test(l));
+                            .filter(l => l.length > 3 && 
+                                         !l.includes('resize') && 
+                                         !l.includes('{') && 
+                                         !l.includes('Eq.') && 
+                                         !l.includes('Niveles'));
 
-                        htmlResultado += `
+                        if (lineas.length >= 3) {
+                            htmlResultado += `
                             <div class="partida-card">
-                                <div class="info-header"><span>${hora}</span> <span>${texto.includes('Cerrada') ? 'Cerrada' : 'Abierta'}</span></div>
+                                <div class="info-header">${lineas[0]}</div>
                                 <div class="vs-grid">
-                                    <div>
-                                        ${renderJugador(nombres[0], imgs[0])}
-                                        ${renderJugador(nombres[1], imgs[1])}
+                                    <div class="equipo">
+                                        <div class="jugador">${lineas[1] || ''}</div>
+                                        <div class="jugador">${lineas[2] || ''}</div>
                                     </div>
                                     <div style="font-weight:bold">VS</div>
-                                    <div>
-                                        ${renderJugador(nombres[2], imgs[2])}
-                                        ${renderJugador(nombres[3], imgs[3])}
+                                    <div class="equipo">
+                                        <div class="jugador">${lineas[3] || ''}</div>
+                                        <div class="jugador">${lineas[4] || ''}</div>
                                     </div>
                                 </div>
                             </div>`;
+                        }
                     }
                 });
                 document.getElementById('resultado').innerHTML = htmlResultado || "No hay partidas.";
             } catch (e) {
-                document.getElementById('resultado').innerHTML = "Error al cargar los datos.";
+                document.getElementById('resultado').innerHTML = "Error al cargar.";
             }
         }
-
-        function renderJugador(nombre, img) {
-            if (!nombre) return '';
-            let src = img ? img.src : '';
-            // Forzar carga de imágenes si vienen como rutas relativas
-            if (src && !src.startsWith('http')) src = 'https://www.padelalborayaindoor.com/' + src;
-            return `<div class="jugador"><img src="${src}" class="avatar" onerror="this.style.display='none'"> ${nombre}</div>`;
-        }
-
         cargarPartidas();
     </script>
 </body>
