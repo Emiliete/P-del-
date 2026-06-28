@@ -41,4 +41,48 @@
                 // Limpiar basura técnica
                 doc.querySelectorAll('script, style, link, .participanteCuadro').forEach(e => e.remove());
                 
-                const filas
+                const filas = doc.querySelectorAll('tr'); 
+                let htmlResultado = '';
+                
+                filas.forEach((fila) => {
+                    const texto = fila.innerText;
+                    if (/\d{1,2}:\d{2}/.test(texto) && texto.includes('Pista')) {
+                        const hora = texto.match(/\d{1,2}:\d{2}/)[0];
+                        const estado = texto.includes('Cerrada') ? 'Cerrada' : 'Abierta';
+                        
+                        const nombres = texto.split('\n')
+                            .map(l => l.trim())
+                            .filter(l => l.length > 3 && !/[{;]/.test(l) && !/Pista|Cerrada|Abierta|Niveles|Eq\./i.test(l));
+                        
+                        const imgs = fila.querySelectorAll('img');
+
+                        const generarFila = (i) => {
+                            const nombre = nombres[i] || "Disponible";
+                            let src = imgs[i] ? imgs[i].getAttribute('src') : null;
+                            if (src && !src.startsWith('http')) src = 'https://www.padelalborayaindoor.com/' + src.replace(/^\/+/, '');
+                            
+                            // Si hay imagen, intentamos cargarla. Si falla, ocultamos el elemento avatar.
+                            return `<div class="jugador-fila">
+                                        ${src ? `<img src="${src}" class="avatar" onerror="this.classList.add('hidden')">` : `<div class="avatar"></div>`}
+                                        ${nombre}
+                                    </div>`;
+                        };
+
+                        htmlResultado += `
+                            <div class="partida-card">
+                                <div class="info-header"><span>${hora} - Pista</span><span class="estado-badge">${estado}</span></div>
+                                <div class="vs-grid">
+                                    <div class="equipo">${generarFila(0)}${generarFila(1)}</div>
+                                    <div class="vs-label">VS</div>
+                                    <div class="equipo">${generarFila(2)}${generarFila(3)}</div>
+                                </div>
+                            </div>`;
+                    }
+                });
+                document.getElementById('resultado').innerHTML = htmlResultado;
+            } catch (e) { document.getElementById('resultado').innerHTML = "Error al cargar."; }
+        }
+        document.addEventListener('DOMContentLoaded', cargarPartidas);
+    </script>
+</body>
+</html>
