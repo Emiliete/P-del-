@@ -6,13 +6,13 @@
     <style>
         body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
         table { width: 100%; border-collapse: collapse; background: white; }
-        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+        th, td { border: 1px solid #ccc; padding: 10px; }
         th { background: #2e7d32; color: white; }
     </style>
 </head>
 <body>
     <h1>Partidas Programadas</h1>
-    <div id="resultado">Procesando datos...</div>
+    <div id="resultado">Limpiando datos...</div>
 
     <script>
         async function cargar() {
@@ -20,23 +20,20 @@
                 const res = await fetch('/api/proxy');
                 const html = await res.text();
                 const doc = new DOMParser().parseFromString(html, 'text/html');
-                const filas = doc.querySelectorAll('tr');
+                const textoCompleto = doc.body.innerText;
                 
-                let tablaHtml = '<table><tr><th>Información</th></tr>';
-                let filasEncontradas = 0;
+                // Dividimos el texto gigante cada vez que aparece "Pista"
+                const filas = textoCompleto.split('Pista').filter(f => f.trim().length > 10);
+                
+                let tablaHtml = '<table><tr><th>Partida encontrada</th></tr>';
                 
                 filas.forEach(f => {
-                    const texto = f.innerText.trim();
-                    // Buscamos filas relevantes y limpiamos el ruido de CSS
-                    if (texto.includes('Pista')) {
-                        const textoLimpio = texto.replace(/a\.resize.*?\}/g, '').trim();
-                        tablaHtml += `<tr><td>${textoLimpio}</td></tr>`;
-                        filasEncontradas++;
-                    }
+                    // Limpiamos basura (códigos CSS que se colaron)
+                    const limpia = f.replace(/a\.resize.*?\}/g, '').replace(/\.participanteCuadro.*?block\}/g, '');
+                    tablaHtml += `<tr><td>Pista ${limpia.trim()}</td></tr>`;
                 });
 
-                document.getElementById('resultado').innerHTML = 
-                    filasEncontradas > 0 ? tablaHtml + '</table>' : "No se encontraron datos de pistas.";
+                document.getElementById('resultado').innerHTML = tablaHtml + '</table>';
             } catch (e) {
                 document.getElementById('resultado').innerHTML = "Error: " + e.message;
             }
