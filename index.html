@@ -7,17 +7,16 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; padding: 20px; color: #333; }
         .container { max-width: 800px; margin: auto; }
-        h1 { text-align: center; color: #1b5e20; }
+        h1 { text-align: center; color: #1b5e20; margin-bottom: 30px; }
         .partida-card { background: white; padding: 20px; margin-bottom: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-left: 6px solid #2e7d32; }
-        .titulo { font-weight: bold; color: #2e7d32; font-size: 1.2em; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-        .info { color: #555; line-height: 1.6; font-size: 0.95em; }
-        .avatar { width: 35px; height: 35px; border-radius: 50%; margin: 2px; vertical-align: middle; border: 1px solid #ddd; }
+        .titulo { font-weight: bold; color: #2e7d32; font-size: 1.2em; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .info { color: #555; line-height: 1.6; font-size: 0.95em; white-space: pre-wrap; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Partidas en Alboraya</h1>
-        <div id="resultado">Cargando partidas, espera un momento...</div>
+        <div id="resultado">Cargando partidas...</div>
     </div>
 
     <script>
@@ -27,40 +26,35 @@
                 const html = await res.text();
                 const doc = new DOMParser().parseFromString(html, 'text/html');
                 
-                // Procesar imágenes: corregir rutas y ocultar errores
-                const imgs = doc.querySelectorAll('img');
-                imgs.forEach(img => {
-                    let src = img.getAttribute('src');
-                    if (src && !src.startsWith('http')) {
-                        img.src = 'https://www.padelalborayaindoor.com/' + src;
-                    }
-                    img.classList.add('avatar');
-                    img.onerror = function() { this.style.display = 'none'; };
-                });
-
                 const texto = doc.body.innerText;
                 const bloques = texto.split('Pista');
                 let htmlResultado = '';
                 
                 bloques.forEach(bloque => {
-                    // Filtrar solo bloques que parecen partidas (tienen hora)
-                    if (bloque.match(/\d{1,2}:\d{2}/)) {
-                        let limpio = bloque.replace(/a\.resize.*?\}/g, '')
+                    // Solo procesar si contiene un formato de hora (ej: 11:15)
+                    if (/\d{1,2}:\d{2}/.test(bloque)) {
+                        
+                        // Limpieza intensiva de basura (CSS, JS, etiquetas)
+                        let limpio = bloque.replace(/a\.resize.*?\{.*?\}/g, '')
                                           .replace(/\.participanteCuadro.*?block\}/g, '')
                                           .replace(/function.*?\}\);/g, '')
+                                          .replace(/\{.*?\}/g, '') // Elimina restos de llaves de estilo
                                           .trim();
                         
-                        htmlResultado += `
-                            <div class="partida-card">
-                                <div class="titulo">Pista ${limpio.substring(0, 10).trim()}</div>
-                                <div class="info">${limpio.substring(10).trim()}</div>
-                            </div>`;
+                        // Aseguramos formato limpio para cada tarjeta
+                        if (limpio.length > 5) {
+                            htmlResultado += `
+                                <div class="partida-card">
+                                    <div class="titulo">Pista ${limpio.substring(0, 10).trim()}</div>
+                                    <div class="info">${limpio.substring(10).trim()}</div>
+                                </div>`;
+                        }
                     }
                 });
 
                 document.getElementById('resultado').innerHTML = htmlResultado || "No hay partidas disponibles en este momento.";
             } catch (e) {
-                document.getElementById('resultado').innerHTML = "Error al conectar: " + e.message;
+                document.getElementById('resultado').innerHTML = "Error al cargar: " + e.message;
             }
         }
         cargarPartidas();
