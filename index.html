@@ -1,145 +1,81 @@
-<script>
-    async function cargarPartidas() {
-        const container = document.getElementById('resultado');
-        try {
-            const res = await fetch('/api/proxy');
-            const html = await res.text();
-            const doc = new DOMParser().parseFromString(html, 'text/html');
-            
-            // 1. Limpieza radical de elementos técnicos que estorban
-            doc.querySelectorAll('style, script, .participanteCuadro').forEach(el => el.remove());
-            
-            // 2. Buscamos específicamente los elementos que sabemos que contienen la información
-            // Ajusta '.tr-partida' si tu web original usa una clase distinta para las filas
-            const filas = doc.querySelectorAll('tr');
-            let htmlResultado = '';
-            
-            filas.forEach((fila) => {
-                // Filtramos solo filas que contengan información de partido
-                const texto = fila.innerText.trim();
-                if (/\d{1,2}:\d{2}/.test(texto) && texto.includes('Pista')) {
-                    
-                    const hora = texto.match(/\d{1,2}:\d{2}/)[0];
-                    const estado = texto.includes('Cerrada') ? 'Cerrada' : 'Abierta';
-                    
-                    // Extraemos imágenes usando un selector que busca dentro de la fila
-                    const imagenes = Array.from(fila.querySelectorAll('img'));
-                    
-                    // Limpiamos los nombres eliminando ruido y etiquetas como "Eq. A"
-                    const lineas = texto.split('\n')
-                        .map(l => l.trim())
-                        .filter(l => l.length > 3 && !/[{;]/.test(l) && !/Pista|Cerrada|Abierta|Niveles|Eq\./i.test(l));
-                    
-                    const nombres = lineas.filter(l => /[a-zA-Z]{3,}/.test(l)).slice(0, 4);
-                    
-                    if (nombres.length > 0) {
-                        htmlResultado += `
-                            <div class="partida-card">
-                                <div class="info-header"><span>${hora} - Pista</span><span class="estado-badge">${estado}</span></div>
-                                <div class="vs-grid">
-                                    <div class="equipo">
-                                        ${renderizarJugador(nombres[0], imagenes[0])}
-                                        ${renderizarJugador(nombres[1], imagenes[1])}
-                                    </div>
-                                    <div class="vs-label">VS</div>
-                                    <div class="equipo">
-                                        ${renderizarJugador(nombres[2], imagenes[2])}
-                                        ${renderizarJugador(nombres[3], imagenes[3])}
-                                    </div>
-                                </div>
-                            </div>`;
-                    }
-                }
-            });
-            container.innerHTML = htmlResultado;
-        } catch (e) {
-            container.innerHTML = "Error al cargar los datos.";
-        }
-    }
-
-    function renderizarJugador(nombre, imgElement) {
-        if (!nombre) return '';
-        // Intentamos reconstruir la URL correctamente
-        let src = imgElement ? imgElement.getAttribute('src') : '';
-        if (src && !src.startsWith('http')) {
-            src = 'https://www.padelalborayaindoor.com' + (src.startsWith('/') ? '' : '/') + src;
-        }
-        
-        return `<div class="jugador-fila">
-                    ${src ? `<img src="${src}" class="avatar" onerror="this.style.display='none'">` : ''}
-                    <span>${nombre}</span>
-                </div>`;
-    }
-
-    document.addEventListener('DOMContentLoaded', cargarPartidas);
-</script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>Partidas - Padel Alboraya</title>
     <style>
-        body { font-family: -apple-system, sans-serif; background-color: #fdfdfd; padding: 20px; }
-        .partida-card { background: #e8f5e9; border: 2px solid #000; padding: 15px; margin-bottom: 15px; border-radius: 4px; }
-        .info-header { font-weight: 800; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 10px; display: flex; justify-content: space-between; }
-        .vs-grid { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 10px; }
-        .jugador { display: flex; align-items: center; margin-bottom: 5px; font-size: 0.85em; }
-        .avatar { width: 30px; height: 30px; border-radius: 50%; margin-right: 8px; background: #ccc; }
+        body { font-family: sans-serif; background-color: #fcfcfc; padding: 20px; }
+        .container { max-width: 700px; margin: 0 auto; }
+        h1 { text-align: center; color: #2e7d32; }
+        .partida-card { background: #eef7ee; border: 2px solid #2e7d32; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
+        .info-header { font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 10px; display: flex; justify-content: space-between; }
+        .vs-grid { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; }
+        .jugador { display: flex; align-items: center; gap: 10px; margin: 5px 0; }
+        .avatar { width: 35px; height: 35px; border-radius: 50%; background: #ddd; object-fit: cover; }
     </style>
 </head>
 <body>
-    <div id="resultado">Cargando...</div>
+    <div class="container">
+        <h1>Partidas</h1>
+        <div id="resultado">Cargando...</div>
+    </div>
 
     <script>
         async function cargarPartidas() {
-            const res = await fetch('/api/proxy');
-            const html = await res.text();
-            const doc = new DOMParser().parseFromString(html, 'text/html');
-            
-            // 1. Identificamos los contenedores que engloban cada partida
-            // (Ajusta '.partida-container' por la clase real de la web si la conoces)
-            const bloquesPartida = doc.querySelectorAll('tr'); 
-            let htmlResultado = '';
-            
-            bloquesPartida.forEach(bloque => {
-                // 2. Solo procesamos si hay hora y pista
-                if (bloque.innerText.includes(':') && bloque.innerText.includes('Pista')) {
-                    const texto = bloque.innerText;
-                    const imagenes = bloque.querySelectorAll('img');
-                    
-                    // 3. Extraemos nombres filtrando "ruido" (clases, eqA, etc)
-                    const nombres = texto.split('\n')
-                        .map(l => l.trim())
-                        .filter(l => l.length > 3 && !/[{;]/.test(l) && !/Pista|Cerrada|Abierta|Niveles|Eq\./i.test(l));
-                    
-                    // 4. Construimos la tarjeta si tenemos algo de información
-                    if (nombres.length > 0) {
+            try {
+                const res = await fetch('/api/proxy');
+                const html = await res.text();
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+
+                // 1. ELIMINACIÓN DE BASURA: Borramos todo lo que no sea contenido útil
+                doc.querySelectorAll('script, style, link, meta, .participanteCuadro').forEach(e => e.remove());
+
+                // 2. BUSCAR FILAS: Seleccionamos las filas (tr) de las tablas de partidas
+                const filas = doc.querySelectorAll('tr');
+                let htmlResultado = '';
+
+                filas.forEach(fila => {
+                    // Validar que la fila contiene datos de una partida
+                    if (fila.innerText.includes('Pista') && /\d{1,2}:\d{2}/.test(fila.innerText)) {
+                        const texto = fila.innerText;
+                        const hora = texto.match(/\d{1,2}:\d{2}/)?.[0] || "";
+                        
+                        // Extraer imágenes de esta fila específica
+                        const imgs = fila.querySelectorAll('img');
+                        
+                        // Extraer nombres limpiando basura técnica
+                        const nombres = texto.split('\n')
+                            .map(l => l.trim())
+                            .filter(l => l.length > 3 && !/[{;]/.test(l) && !/Pista|Cerrada|Abierta|Niveles|Eq\./i.test(l));
+
                         htmlResultado += `
-                        <div class="partida-card">
-                            <div class="info-header">
-                                <span>${texto.match(/\d{1,2}:\d{2}/)?.[0] || ""}</span>
-                                <span>${texto.includes('Cerrada') ? 'Cerrada' : 'Abierta'}</span>
-                            </div>
-                            <div class="vs-grid">
-                                <div class="equipo">
-                                    ${renderizarJugador(nombres[0], imagenes[0])}
-                                    ${renderizarJugador(nombres[1], imagenes[1])}
+                            <div class="partida-card">
+                                <div class="info-header"><span>${hora}</span> <span>${texto.includes('Cerrada') ? 'Cerrada' : 'Abierta'}</span></div>
+                                <div class="vs-grid">
+                                    <div>
+                                        ${renderJugador(nombres[0], imgs[0])}
+                                        ${renderJugador(nombres[1], imgs[1])}
+                                    </div>
+                                    <div style="font-weight:bold">VS</div>
+                                    <div>
+                                        ${renderJugador(nombres[2], imgs[2])}
+                                        ${renderJugador(nombres[3], imgs[3])}
+                                    </div>
                                 </div>
-                                <div>VS</div>
-                                <div class="equipo">
-                                    ${renderizarJugador(nombres[2], imagenes[2])}
-                                    ${renderizarJugador(nombres[3], imagenes[3])}
-                                </div>
-                            </div>
-                        </div>`;
+                            </div>`;
                     }
-                }
-            });
-            document.getElementById('resultado').innerHTML = htmlResultado;
+                });
+                document.getElementById('resultado').innerHTML = htmlResultado || "No hay partidas.";
+            } catch (e) {
+                document.getElementById('resultado').innerHTML = "Error al cargar los datos.";
+            }
         }
 
-        function renderizarJugador(nombre, img) {
+        function renderJugador(nombre, img) {
             if (!nombre) return '';
-            const src = img ? (img.src.startsWith('http') ? img.src : 'https://www.padelalborayaindoor.com' + img.src) : '';
+            let src = img ? img.src : '';
+            // Forzar carga de imágenes si vienen como rutas relativas
+            if (src && !src.startsWith('http')) src = 'https://www.padelalborayaindoor.com/' + src;
             return `<div class="jugador"><img src="${src}" class="avatar" onerror="this.style.display='none'"> ${nombre}</div>`;
         }
 
