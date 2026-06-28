@@ -4,15 +4,18 @@
     <meta charset="UTF-8">
     <title>Partidas - Padel Alboraya</title>
     <style>
-        body { font-family: sans-serif; background-color: #fdfdfd; padding: 20px; color: #000; }
+        body { font-family: -apple-system, sans-serif; background-color: #fdfdfd; padding: 20px; color: #000; }
         .container { max-width: 600px; margin: 0 auto; }
         h1 { text-align: center; color: #2e7d32; border-bottom: 3px solid #000; padding-bottom: 10px; }
+        
         .partida-card { background: #e8f5e9; border: 2px solid #000; padding: 15px; margin-bottom: 15px; border-radius: 4px; }
         .info-header { font-weight: 800; border-bottom: 2px solid #000; margin-bottom: 10px; padding-bottom: 5px; }
+        
         .vs-grid { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 10px; }
-        .equipo { font-size: 0.8em; }
+        .equipo { font-size: 0.85em; }
         .vs-label { font-weight: bold; align-self: center; }
-        .jugador-item { display: flex; align-items: center; margin-bottom: 5px; }
+        
+        .jugador-item { display: flex; align-items: center; margin-bottom: 6px; }
         .avatar { width: 30px; height: 30px; border-radius: 50%; border: 1px solid #000; margin-right: 8px; object-fit: cover; }
     </style>
 </head>
@@ -29,43 +32,42 @@
                 const html = await res.text();
                 const doc = new DOMParser().parseFromString(html, 'text/html');
                 
-                const textoCompleto = doc.body.innerText;
-                const bloques = textoCompleto.split('Pista');
+                // Seleccionamos todos los contenedores de "partida"
+                const cuadros = doc.querySelectorAll('.participanteCuadro'); // Ajusta este selector según la web real
                 let htmlResultado = '';
                 
-                // Obtenemos todas las imágenes disponibles en el documento original
-                const todasLasImgs = doc.querySelectorAll('img');
+                // Vamos a buscar los bloques de texto que contienen las partidas
+                const bloques = doc.body.innerText.split('Pista');
                 
-                bloques.forEach((bloque, index) => {
+                bloques.forEach((bloque) => {
                     if (/\d{1,2}:\d{2}/.test(bloque)) {
                         const hora = bloque.match(/\d{1,2}:\d{2}/)[0];
-                        const pista = bloque.substring(0, 2).trim();
                         
-                        // Limpiamos el texto del bloque para obtener los nombres reales
-                        let nombres = bloque.replace(/.*?(?=\d{2,}\.)/g, '').split('-').map(s => s.trim()).filter(s => s.length > 3);
+                        // Filtramos para que solo coja texto que parezca un nombre (sin basura de CSS)
+                        const lineas = bloque.split('\n').filter(l => l.length > 3 && !l.includes('{') && !l.includes('resize'));
                         
-                        // Generamos el HTML de los jugadores basándonos en el texto extraído
+                        // Extraemos nombres (están después del nivel/número)
+                        const nombres = lineas.filter(l => /[a-zA-Z]{3,}/.test(l)).slice(0, 4);
+                        
                         let equipoA = "", equipoB = "";
-                        nombres.forEach((nombre, i) => {
-                            // Intentamos asignar una imagen si existe (o dejar espacio)
-                            let imgTag = todasLasImgs[i] ? `<img src="https://www.padelalborayaindoor.com/${todasLasImgs[i].getAttribute('src')}" class="avatar">` : '';
-                            let item = `<div class="jugador-item">${imgTag} <span>${nombre.substring(0, 15)}</span></div>`;
+                        nombres.forEach((n, i) => {
+                            let item = `<div class="jugador-item"><span>${n.substring(0, 18)}</span></div>`;
                             if (i < 2) equipoA += item; else equipoB += item;
                         });
 
                         htmlResultado += `
                             <div class="partida-card">
-                                <div class="info-header">${hora} - Pista ${pista}</div>
+                                <div class="info-header">${hora} - Pista ${bloque.substring(0, 2).trim()}</div>
                                 <div class="vs-grid">
-                                    <div class="equipo">${equipoA}</div>
+                                    <div class="equipo">${equipoA || "No disponible"}</div>
                                     <div class="vs-label">VS</div>
-                                    <div class="equipo">${equipoB}</div>
+                                    <div class="equipo">${equipoB || "No disponible"}</div>
                                 </div>
                             </div>`;
                     }
                 });
                 document.getElementById('resultado').innerHTML = htmlResultado;
-            } catch (e) { document.getElementById('resultado').innerHTML = "Error al procesar los datos."; }
+            } catch (e) { document.getElementById('resultado').innerHTML = "Error al cargar."; }
         }
         cargarPartidas();
     </script>
