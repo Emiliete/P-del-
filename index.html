@@ -13,37 +13,58 @@
 <body>
 
     <h1>Partidas Programadas</h1>
-    <table id="tabla-resultado">
-        <thead>
-            <tr><th>Hora</th><th>Pista</th><th>Jugadores</th><th>Estado</th></tr>
-        </thead>
-        <tbody id="app">
-            <tr><td colspan="4">Cargando datos...</td></tr>
-        </tbody>
-    </table>
+    <div id="status">Cargando datos...</div>
+    <div id="tabla-resultado"></div>
 
     <script>
-        async function cargarPartidas() {
+        async function procesar() {
             try {
-                // Aquí llamarás a tu función de Vercel (api/partidas)
-                const response = await fetch('/api/partidas'); 
-                const data = await response.json();
+                // 1. Llamamos a tu proxy
+                const response = await fetch('/api/proxy');
+                const htmlTexto = await response.text();
+
+                // 2. Convertimos el texto en un DOM real
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlTexto, 'text/html');
+
+                // 3. Procesamos los bloques (ajusta estos selectores según lo que veas en la web)
+                const bloques = doc.querySelectorAll('.gridviewestilocabecera');
+                let lista = [];
+
+                bloques.forEach(cabecera => {
+                    const padre = cabecera.parentElement;
+                    const texto = cabecera.innerText;
+                    
+                    // Extraemos datos básicos
+                    const horaMatch = texto.match(/(\d{1,2}:\d{2})/);
+                    const jugadores = padre.querySelector('.participanteCuadro')?.innerHTML || "Sin jugadores";
+
+                    if (horaMatch) {
+                        lista.push({
+                            hora: horaMatch[0],
+                            jugadores: jugadores,
+                            estado: texto.includes('Cerrada') ? 'Cerrada' : 'Disponible'
+                        });
+                    }
+                });
+
+                // 4. Renderizamos la tabla
+                let html = `<table><tr><th>Hora</th><th>Jugadores</th><th>Estado</th></tr>`;
+                lista.forEach(p => {
+                    html += `<tr><td>${p.hora}</td><td>${p.jugadores}</td><td>${p.estado}</td></tr>`;
+                });
+                html += `</table>`;
                 
-                const tbody = document.getElementById('app');
-                tbody.innerHTML = data.partidas.map(p => `
-                    <tr>
-                        <td>${p.hora}</td>
-                        <td>${p.pista}</td>
-                        <td>${p.jugadores}</td>
-                        <td>${p.estado}</td>
-                    </tr>
-                `).join('');
-            } catch (e) {
-                document.getElementById('app').innerHTML = "<tr><td colspan='4'>Error al conectar con el servidor.</td></tr>";
+                document.getElementById('tabla-resultado').innerHTML = html;
+                document.getElementById('status').innerText = "";
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('status').innerText = "Error al procesar los datos.";
             }
         }
 
-        cargarPartidas();
+        procesar();
     </script>
 </body>
 </html>
