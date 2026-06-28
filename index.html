@@ -4,15 +4,14 @@
     <meta charset="UTF-8">
     <title>Partidas - Padel Alboraya</title>
     <style>
-        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
-        .card { background: #fff; border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
-        .header { font-weight: bold; border-bottom: 1px solid #eee; margin-bottom: 10px; padding-bottom: 5px; color: #2e7d32; }
-        .jugadores-lista { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .jugador { font-size: 0.85em; padding: 2px 0; border-bottom: 1px solid #f9f9f9; }
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+        .card { background: #fff; border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 8px; }
+        .header { font-weight: bold; border-bottom: 1px solid #eee; margin-bottom: 10px; padding-bottom: 5px; }
+        .jugadores { font-size: 0.9em; color: #444; }
     </style>
 </head>
 <body>
-    <div id="app">Cargando partidas...</div>
+    <div id="app">Cargando...</div>
 
     <script>
         async function cargar() {
@@ -20,40 +19,37 @@
                 const res = await fetch('/api/proxy');
                 const html = await res.text();
                 const doc = new DOMParser().parseFromString(html, 'text/html');
-                
-                // Limpiamos basura técnica
-                doc.querySelectorAll('script, style, img, .participanteCuadro').forEach(e => e.remove());
-                
+
+                // 1. Limpieza radical: Borramos todo lo que no sea contenido textual útil
+                doc.querySelectorAll('script, style, img, .participanteCuadro, [style]').forEach(e => e.remove());
+
                 const filas = doc.querySelectorAll('tr');
                 let htmlResultado = '';
 
                 filas.forEach(tr => {
                     const texto = tr.innerText.trim();
-                    // Filtro para detectar una fila de partida
+                    // Solo procesamos filas que contengan una hora y la palabra "Pista"
                     if (/\d{1,2}:\d{2}/.test(texto) && texto.includes('Pista')) {
-                        
-                        // Extraemos nombres: cualquier línea que contenga un nombre (excluimos ruido)
+                        // Limpiamos líneas de texto descartando cualquier resto de código o estilo
                         const lineas = texto.split('\n')
                             .map(l => l.trim())
-                            .filter(l => l.length > 3 && !/[{;]/.test(l) && !/Pista|Cerrada|Abierta|Niveles|Eq\./i.test(l));
+                            .filter(l => l.length > 3 && 
+                                         !l.includes('resize') && 
+                                         !l.includes('max-width') && 
+                                         !l.includes('Eq.'));
 
                         if (lineas.length > 0) {
                             htmlResultado += `<div class="card">
                                 <div class="header">${lineas[0]}</div>
-                                <div class="jugadores-lista">`;
-                            
-                            // Listamos TODOS los jugadores encontrados, sin límite de 4
-                            lineas.slice(1).forEach(jugador => {
-                                htmlResultado += `<div class="jugador">${jugador}</div>`;
-                            });
-
+                                <div class="jugadores">`;
+                            lineas.slice(1).forEach(l => htmlResultado += `<div>${l}</div>`);
                             htmlResultado += `</div></div>`;
                         }
                     }
                 });
-                document.getElementById('app').innerHTML = htmlResultado || "No hay partidas.";
+                document.getElementById('app').innerHTML = htmlResultado || "No se encontraron partidas.";
             } catch (e) {
-                document.getElementById('app').innerHTML = "Error al cargar.";
+                document.getElementById('app').innerHTML = "Error al conectar.";
             }
         }
         cargar();
