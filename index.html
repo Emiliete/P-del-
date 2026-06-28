@@ -4,24 +4,14 @@
     <meta charset="UTF-8">
     <title>Partidas - Padel Alboraya</title>
     <style>
-        body { font-family: -apple-system, sans-serif; background-color: #fdfdfd; padding: 20px; color: #000; }
+        body { font-family: sans-serif; background-color: #fdfdfd; padding: 20px; color: #000; }
         .container { max-width: 600px; margin: 0 auto; }
         h1 { text-align: center; color: #2e7d32; border-bottom: 3px solid #000; padding-bottom: 10px; }
-        
-        .partida-card { 
-            background: #e8f5e9; 
-            border: 2px solid #000; 
-            padding: 15px; 
-            margin-bottom: 15px; 
-            border-radius: 4px;
-        }
-        
+        .partida-card { background: #e8f5e9; border: 2px solid #000; padding: 15px; margin-bottom: 15px; border-radius: 4px; }
         .info-header { font-weight: 800; border-bottom: 2px solid #000; margin-bottom: 10px; padding-bottom: 5px; }
-        
         .vs-grid { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 10px; }
-        .equipo { font-size: 0.85em; }
+        .equipo { font-size: 0.8em; }
         .vs-label { font-weight: bold; align-self: center; }
-        
         .jugador-item { display: flex; align-items: center; margin-bottom: 5px; }
         .avatar { width: 30px; height: 30px; border-radius: 50%; border: 1px solid #000; margin-right: 8px; object-fit: cover; }
     </style>
@@ -39,39 +29,43 @@
                 const html = await res.text();
                 const doc = new DOMParser().parseFromString(html, 'text/html');
                 
-                const bloques = doc.body.innerText.split('Pista');
+                const textoCompleto = doc.body.innerText;
+                const bloques = textoCompleto.split('Pista');
                 let htmlResultado = '';
+                
+                // Obtenemos todas las imágenes disponibles en el documento original
+                const todasLasImgs = doc.querySelectorAll('img');
                 
                 bloques.forEach((bloque, index) => {
                     if (/\d{1,2}:\d{2}/.test(bloque)) {
                         const hora = bloque.match(/\d{1,2}:\d{2}/)[0];
-                        const pistaNum = bloque.substring(0, 2).trim();
+                        const pista = bloque.substring(0, 2).trim();
                         
-                        // Captura de imágenes y nombres de la fila original
-                        const fila = doc.querySelectorAll('tr')[index];
-                        const jugadores = fila ? fila.querySelectorAll('img') : [];
+                        // Limpiamos el texto del bloque para obtener los nombres reales
+                        let nombres = bloque.replace(/.*?(?=\d{2,}\.)/g, '').split('-').map(s => s.trim()).filter(s => s.length > 3);
                         
-                        // Simulamos separación A/B (basado en el orden de aparición)
+                        // Generamos el HTML de los jugadores basándonos en el texto extraído
                         let equipoA = "", equipoB = "";
-                        jugadores.forEach((img, i) => {
-                            let src = img.src.startsWith('http') ? img.src : 'https://www.padelalborayaindoor.com/' + img.getAttribute('src');
-                            let htmlImg = `<div class="jugador-item"><img src="${src}" class="avatar" onerror="this.style.display='none'"> <span>Jugador ${i+1}</span></div>`;
-                            if (i < 2) equipoA += htmlImg; else equipoB += htmlImg;
+                        nombres.forEach((nombre, i) => {
+                            // Intentamos asignar una imagen si existe (o dejar espacio)
+                            let imgTag = todasLasImgs[i] ? `<img src="https://www.padelalborayaindoor.com/${todasLasImgs[i].getAttribute('src')}" class="avatar">` : '';
+                            let item = `<div class="jugador-item">${imgTag} <span>${nombre.substring(0, 15)}</span></div>`;
+                            if (i < 2) equipoA += item; else equipoB += item;
                         });
 
                         htmlResultado += `
                             <div class="partida-card">
-                                <div class="info-header">${hora} - Pista ${pistaNum}</div>
+                                <div class="info-header">${hora} - Pista ${pista}</div>
                                 <div class="vs-grid">
-                                    <div class="equipo">${equipoA || "Eq A"}</div>
+                                    <div class="equipo">${equipoA}</div>
                                     <div class="vs-label">VS</div>
-                                    <div class="equipo">${equipoB || "Eq B"}</div>
+                                    <div class="equipo">${equipoB}</div>
                                 </div>
                             </div>`;
                     }
                 });
                 document.getElementById('resultado').innerHTML = htmlResultado;
-            } catch (e) { document.getElementById('resultado').innerHTML = "Error al cargar."; }
+            } catch (e) { document.getElementById('resultado').innerHTML = "Error al procesar los datos."; }
         }
         cargarPartidas();
     </script>
