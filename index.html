@@ -2,38 +2,54 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Partidas con Jugadores</title>
+    <title>Partidas Padel</title>
     <style>
-        body { font-family: sans-serif; background-color: #f4f4f9; padding: 10px; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; }
-        th, td { padding: 8px; border: 1px solid #ddd; vertical-align: middle; }
+        body { font-family: sans-serif; background-color: #f4f4f9; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
         th { background-color: #2e7d32; color: white; }
-        .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-right: 5px; }
-        .jugadores { display: flex; align-items: center; flex-wrap: wrap; }
+        .player-img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 5px; }
+        .completa { color: #d32f2f; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h1>Partidas Programadas</h1>
-    <div id="app">Cargando...</div>
+    <h2>Partidas Ordenadas por Hora</h2>
+    <div id="app">Cargando partidas...</div>
 
     <script>
         async function fetchMatches() {
             try {
-                const res = await fetch('/api/proxy');
+                // Aquí deberías colocar la lógica de tu fuente de datos
+                const res = await fetch('/api/proxy'); // O tu fuente local
                 const text = await res.text();
+                
+                // Procesamiento: Filtramos los bloques de pista
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(text, 'text/html');
-                
-                let matches = [];
-                // Buscamos bloques de pista
-                const bloques = doc.querySelectorAll('div'); // Ajusta según la estructura real de tu HTML
+                const bloques = Array.from(doc.querySelectorAll('div')); // Ajusta al selector de tu contenedor
 
-                // (Lógica simplificada para extracción de datos)
-                // Nota: Debido a que tu entrada es un string largo, 
-                // el parser procesará los elementos <img> existentes.
-                
-                let html = `<table><tr><th>Hora</th><th>Pista</th><th>Jugadores</th></tr>`;
-                
+                let tablaHtml = `<table>
+                    <tr><th>Hora</th><th>Pista</th><th>Jugadores</th><th>Estado</th></tr>`;
+
+                // Aquí iterarías sobre los bloques procesados
+                // Ejemplo de una fila:
+                tablaHtml += `<tr>
+                    <td>11:15</td>
+                    <td>1</td>
+                    <td><img src="url_foto_jugador.jpg" class="player-img"> Nombre Jugador</td>
+                    <td>Cerrada</td>
+                </tr>`;
+
+                tablaHtml += `</table>`;
+                document.getElementById('app').innerHTML = tablaHtml;
+            } catch (e) {
+                document.getElementById('app').innerHTML = "Error al cargar datos.";
+            }
+        }
+        fetchMatches();
+    </script>
+</body>
+</html>
                 // Aquí el código iteraría sobre los objetos extraídos y 
                 // construiría la fila incluyendo: 
                 // <img src="..." class="avatar">
