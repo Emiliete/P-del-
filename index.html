@@ -2,65 +2,55 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Partidas - Padel Alboraya</title>
     <style>
-        /* Estilos estilo Nano Banana: Minimalista, colores suaves y bordes redondeados */
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background-color: #f9f9f9; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background-color: #fdfdfd; 
             padding: 20px; 
-            color: #333; 
-            line-height: 1.5;
+            color: #2d3436; 
         }
         .container { max-width: 600px; margin: 0 auto; }
-        h1 { text-align: center; color: #2d3436; font-size: 1.5rem; margin-bottom: 25px; }
-        
+        h1 { text-align: center; color: #2e7d32; }
+
         .partida-card { 
-            background: white; 
-            padding: 20px; 
-            margin-bottom: 16px; 
-            border-radius: 16px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            border: 1px solid #eee;
+            background: #e8f5e9; /* Verde pastel suave */
+            border: 2px solid #000000; /* Bordes negros definidos */
+            padding: 16px; 
+            margin-bottom: 12px; 
+            border-radius: 8px;
         }
-        
-        .titulo { 
-            font-weight: 700; 
-            color: #27ae60; 
-            font-size: 1.1rem; 
-            margin-bottom: 12px;
+
+        .header-partida {
             display: flex;
+            justify-content: space-between;
+            font-weight: 800;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 5px;
+        }
+
+        .vs-container {
+            display: flex;
+            justify-content: space-around;
             align-items: center;
+            font-weight: 600;
         }
+
+        .equipo { text-align: center; font-size: 0.9em; }
+        .vs-text { font-style: italic; color: #555; }
         
-        .info { 
-            color: #636e72; 
-            font-size: 0.95rem; 
-            white-space: pre-line;
-        }
-
-        .img-container {
-            margin-top: 15px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
         .img-jugador { 
-            width: 42px; 
-            height: 42px; 
-            border-radius: 50%; 
-            object-fit: cover; 
-            border: 2px solid #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 35px; height: 35px; 
+            border-radius: 50%; border: 1px solid #000;
+            display: block; margin: 0 auto 5px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Partidas en Alboraya</h1>
-        <div id="resultado">Cargando...</div>
+        <h1>Partidas</h1>
+        <div id="resultado">Procesando...</div>
     </div>
 
     <script>
@@ -69,38 +59,38 @@
                 const res = await fetch('/api/proxy');
                 const html = await res.text();
                 const doc = new DOMParser().parseFromString(html, 'text/html');
-                
                 const texto = doc.body.innerText;
                 const bloques = texto.split('Pista');
                 let htmlResultado = '';
                 
                 bloques.forEach((bloque, index) => {
                     if (/\d{1,2}:\d{2}/.test(bloque)) {
-                        let imgsHtml = '';
-                        const imgs = doc.querySelectorAll(`tr:nth-of-type(${index + 1}) img`);
-                        imgs.forEach(img => {
-                            let src = img.getAttribute('src');
-                            if (src) {
-                                if (!src.startsWith('http')) src = 'https://www.padelalborayaindoor.com/' + src;
-                                imgsHtml += `<img src="${src}" class="img-jugador" onerror="this.style.display='none'">`;
-                            }
-                        });
-
-                        let limpio = bloque.replace(/a\.resize.*?\{.*?\}/g, '').trim();
+                        // Extraer datos básicos
+                        const horaMatch = bloque.match(/\d{1,2}:\d{2}/);
+                        const hora = horaMatch ? horaMatch[0] : '';
+                        const pista = bloque.substring(0, 2).trim();
                         
+                        // Separar equipos (asumiendo formato "Eq. A... Eq. B")
+                        const partes = bloque.split('Eq. B');
+                        const eqA = partes[0].split('Eq. A')[1] || "Jugadores...";
+                        const eqB = partes[1] || "Jugadores...";
+
                         htmlResultado += `
                             <div class="partida-card">
-                                <div class="titulo">Pista ${limpio.substring(0, 10).trim()}</div>
-                                <div class="info">${limpio.substring(10).trim()}</div>
-                                <div class="img-container">${imgsHtml}</div>
+                                <div class="header-partida">
+                                    <span>${hora}</span>
+                                    <span>Pista ${pista}</span>
+                                </div>
+                                <div class="vs-container">
+                                    <div class="equipo">A<br>${eqA.substring(0, 15)}...</div>
+                                    <div class="vs-text">VS</div>
+                                    <div class="equipo">B<br>${eqB.substring(0, 15)}...</div>
+                                </div>
                             </div>`;
                     }
                 });
-
-                document.getElementById('resultado').innerHTML = htmlResultado || "No hay partidas disponibles.";
-            } catch (e) {
-                document.getElementById('resultado').innerHTML = "Error al conectar: " + e.message;
-            }
+                document.getElementById('resultado').innerHTML = htmlResultado || "No hay partidas.";
+            } catch (e) { document.getElementById('resultado').innerHTML = "Error al cargar."; }
         }
         cargarPartidas();
     </script>
