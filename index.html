@@ -2,74 +2,63 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Parf</title>
+    <title>Partidas - Padel Alboraya</title>
     <style>
-        body { font-family: sans-serif; background-color: #f4f4f4; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; }
-        h1 { color: #2e7d32; text-align: center; }
-        
-        .partida-card { 
-            background: #fff; border-left: 5px solid #2e7d32; 
-            padding: 15px; margin-bottom: 15px; 
-            border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
-        }
-        .header { 
-            font-weight: bold; border-bottom: 1px solid #eee; 
-            margin-bottom: 10px; padding-bottom: 5px; color: #333;
-        }
-        .jugador-item { display: flex; align-items: center; margin: 5px 0; font-size: 0.9em; }
-        .fotoParticipante { width: 30px; height: 30px; border-radius: 50%; margin-right: 10px; object-fit: cover; }
+        body { font-family: sans-serif; background: #f0f7f0; padding: 20px; }
+        .titulo { color: #2e7d32; text-align: center; }
+        .card { background: #fff; border: 2px solid #2e7d32; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
+        .pista { font-weight: bold; color: #1b5e20; border-bottom: 1px solid #c8e6c9; margin-bottom: 10px; padding-bottom: 5px; }
+        .jugador-contenedor { display: flex; align-items: center; margin: 5px 0; }
+        .fotoParticipante { width: 30px; height: 30px; border-radius: 50%; margin-right: 10px; object-fit: cover; background: #ddd; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Partidas</h1>
-        <div id="app">Cargando partidas...</div>
-    </div>
+    <h1 class="titulo">Partidas</h1>
+    <div id="app">Cargando...</div>
 
     <script>
-        async function renderizarPartidas() {
-            try {
-                const res = await fetch('/api/proxy');
-                const html = await res.text();
+        fetch('/api/proxy')
+            .then(res => res.text())
+            .then(html => {
                 const doc = new DOMParser().parseFromString(html, 'text/html');
-                
-                // Buscamos los contenedores que agrupan los datos (ajustar según inspección web)
-                const bloques = doc.querySelectorAll('tr, .pista-contenedor'); 
-                const app = document.getElementById('app');
+                const output = document.getElementById('app');
                 let htmlResultado = '';
-
+                
+                // Buscamos los bloques de partida (ajusta este selector si es necesario)
+                const bloques = doc.querySelectorAll('tr, div[class*="grid"]');
+                
                 bloques.forEach(bloque => {
-                    const texto = bloque.innerText;
-                    
-                    // Solo procesamos si el bloque contiene información de Pista y hora
+                    const texto = bloque.innerText.trim();
                     if (texto.includes('Pista') && /\d{1,2}:\d{2}/.test(texto)) {
+                        
+                        // Extraemos los jugadores y sus imágenes
                         const lineas = texto.split('\n').filter(l => l.trim().length > 3);
-                        const fotos = bloque.querySelectorAll('.fotoParticipante');
+                        const imagenes = bloque.querySelectorAll('.fotoParticipante');
                         
-                        htmlResultado += `<div class="partida-card">
-                            <div class="header">${lineas[0]}</div>
-                            <div class="jugadores">`;
-                        
-                        // Extraemos jugadores evitando ruido técnico
-                        lineas.slice(1).forEach((nombre, i) => {
-                            const img = fotos[i] ? fotos[i].getAttribute('src') : '';
-                            htmlResultado += `<div class="jugador-item">
-                                ${img ? `<img src="${img}" class="fotoParticipante">` : ''}
-                                <span>${nombre}</span>
-                            </div>`;
+                        htmlResultado += `<div class="card">
+                            <div class="pista">${lineas[0]}</div>`;
+                            
+                        // Iteramos sobre las líneas de jugadores
+                        lineas.slice(1).forEach((nombre, index) => {
+                            const img = imagenes[index] ? imagenes[index].getAttribute('src') : '';
+                            const srcCompleto = img ? (img.startsWith('http') ? img : 'https://www.padelalborayaindoor.com/' + img) : '';
+                            
+                            htmlResultado += `
+                                <div class="jugador-contenedor">
+                                    ${srcCompleto ? `<img src="${srcCompleto}" class="fotoParticipante" onerror="this.style.display='none'">` : ''}
+                                    <div class="jugador">${nombre}</div>
+                                </div>`;
                         });
                         
-                        htmlResultado += `</div></div>`;
+                        htmlResultado += `</div>`;
                     }
                 });
 
-                app.innerHTML = htmlResultado || "No se encontraron partidas.";
-            } catch (e) {
+                output.innerHTML = htmlResultado || "No hay partidas visibles.";
+            })
+            .catch(() => {
                 document.getElementById('app').innerHTML = "Error al conectar.";
-            }
-        }
-        renderizarPartidas();
+            });
     </script>
 </body>
 </html>
