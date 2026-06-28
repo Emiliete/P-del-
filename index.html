@@ -1,93 +1,63 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Tabla de Partidas</title>
-    <style>
-        /* Estilos básicos para que se vea bien */
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-        .avatar { width: 30px; border-radius: 50%; vertical-align: middle; }
-    </style>
-</head>
-<body>
+<div id="app"></div>
 
-    <table id="tablaPartidas">
-        <thead>
-            <tr>
-                <th>Hora</th>
-                <th>Pista</th>
-                <th>Jugadores</th>
-                <th>Estado</th>
-            </tr>
-        </thead>
-        <tbody id="cuerpoTabla">
-            </tbody>
-    </table>
-
-    <script>
-        function renderizarPartidas() {
-            const cuerpo = document.getElementById('cuerpoTabla');
-            // Aquí vaciamos la tabla antes de rellenar
-            cuerpo.innerHTML = ''; 
-            
-            // Lógica de ordenación y pintado aquí...
-            console.log("Tabla vaciada y lista para procesar");
-        }
+<script>
+async function fetchMatches() {
+    try {
+        // 1. Seleccionamos todos los contenedores que empiezan por "Pista"
+        // Según tu primer mensaje, cada partida parece ser un bloque principal.
+        // Ajusta este selector si fuera necesario (ej: document.querySelectorAll('.clase-de-tu-bloque'))
+        const bloques = Array.from(document.querySelectorAll('body > div')).filter(d => d.innerText.includes('Pista'));
         
-        renderizarPartidas();
-    </script>
-</body>
-</html>
-                        hora: hora,
-                        minutos: parseInt(hora.split(':')[0]) * 60 + parseInt(hora.split(':')[1]),
-                        pista: parseInt(pistaMatch[1]),
-                        htmlJugadores: bloque.querySelector('.participanteCuadro')?.innerHTML || "Sin datos",
-                        estado: texto.includes('Completa') ? 'Completa' : 'Cerrada'
-                    });
-                }
-            });
+        let matches = [];
 
-            // 2. Ordenar
-            listaPartidas.sort((a, b) => a.minutos - b.minutos || a.pista - b.pista);
+        bloques.forEach(bloque => {
+            const texto = bloque.innerText;
+            const horaMatch = texto.match(/(\d{1,2}:\d{2})/);
+            const pistaMatch = texto.match(/Pista (\d+)/);
+            
+            if (horaMatch && pistaMatch) {
+                const hora = horaMatch[0];
+                // Buscamos el contenedor de imágenes (participanteCuadro)
+                const jugadores = bloque.querySelectorAll('.participanteCuadro');
+                let jugadoresHtml = Array.from(jugadores).map(j => j.innerHTML).join('');
 
-            // 3. Renderizar
-            const tbody = document.getElementById('contenidoPartidas');
-            tbody.innerHTML = listaPartidas.map(p => `
-                <tr>
-                    <td>${p.hora}</td>
-                    <td>${p.pista}</td>
-                    <td>${p.htmlJugadores}</td>
-                    <td>${p.estado}</td>
-                </tr>
-            `).join('');
-        }
-
-        // Ejecutar
-        procesarPartidas();
-    </script>
-</body>
-</html>
-                    matches.push({
-                        hora: hora,
-                        minutos: parseInt(hora.split(':')[0]) * 60 + parseInt(hora.split(':')[1]),
-                        pista: pista,
-                        jugadoresHtml: jugadoresHtml,
-                        estado: esCompleta ? '<span class="completa">Completa</span>' : 'Disponible'
-                    });
+                matches.push({
+                    hora: hora,
+                    minutos: parseInt(hora.split(':')[0]) * 60 + parseInt(hora.split(':')[1]),
+                    pista: parseInt(pistaMatch[1]),
+                    jugadoresHtml: jugadoresHtml || "Sin jugadores",
+                    estado: texto.includes('Completa') ? 'Completa' : 'Disponible'
                 });
+            }
+        });
 
-                matches.sort((a, b) => a.minutos - b.minutos || a.pista - b.pista);
+        // 2. Ordenamos por tiempo y pista
+        matches.sort((a, b) => a.minutos - b.minutos || a.pista - b.pista);
 
-                let html = `<table><tr><th>Hora</th><th>Pista</th><th>Jugadores</th><th>Estado</th></tr>`;
-                matches.forEach(m => {
-                    html += `<tr><td>${m.hora}</td><td>${m.pista}</td><td>${m.jugadoresHtml}</td><td>${m.estado}</td></tr>`;
-                });
-                html += `</table>`;
-                document.getElementById('app').innerHTML = html;
-            } catch (e) { document.getElementById('app').innerHTML = "Error al procesar."; }
-        }
-        fetchMatches();
-    </script>
-</body>
-</html>
+        // 3. Generamos la tabla
+        let html = `
+        <table border="1">
+            <thead>
+                <tr><th>Hora</th><th>Pista</th><th>Jugadores</th><th>Estado</th></tr>
+            </thead>
+            <tbody>
+                ${matches.map(m => `
+                    <tr>
+                        <td>${m.hora}</td>
+                        <td>${m.pista}</td>
+                        <td>${m.jugadoresHtml}</td>
+                        <td>${m.estado}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>`;
+
+        document.getElementById('app').innerHTML = html;
+    } catch (e) {
+        document.getElementById('app').innerHTML = "Error al procesar: " + e.message;
+    }
+}
+
+// Ejecutamos
+fetchMatches();
+</script>
