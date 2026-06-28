@@ -2,9 +2,10 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Partidas - Padel Alboraya</title>
     <style>
-        body { font-family: -apple-system, sans-serif; background-color: #fdfdfd; padding: 20px; color: #000; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #fdfdfd; padding: 20px; color: #000; }
         .container { max-width: 600px; margin: 0 auto; }
         h1 { text-align: center; color: #2e7d32; border-bottom: 3px solid #000; padding-bottom: 10px; margin-bottom: 25px; }
         
@@ -23,31 +24,29 @@
 <body>
     <div class="container">
         <h1>Partidas</h1>
-        <div id="resultado">Cargando...</div>
+        <div id="resultado">Cargando partidas...</div>
     </div>
 
     <script>
-        // Imagen por defecto en base64 (un círculo gris)
-        const DEFAULT_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23999'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E";
-
         async function cargarPartidas() {
+            const container = document.getElementById('resultado');
             try {
                 const res = await fetch('/api/proxy');
                 const html = await res.text();
                 const doc = new DOMParser().parseFromString(html, 'text/html');
                 
-                // 1. Limpieza radical: eliminamos estilos y scripts que ensucian el texto
+                // Limpieza de elementos que ensucian el DOM
                 doc.querySelectorAll('style, script, .participanteCuadro').forEach(el => el.remove());
                 
+                const imagenes = Array.from(doc.querySelectorAll('img'));
                 const bloques = doc.body.innerText.split('Pista').filter(b => /\d{1,2}:\d{2}/.test(b));
                 let htmlResultado = '';
                 
-                bloques.forEach((bloque) => {
+                bloques.forEach((bloque, idx) => {
                     const hora = bloque.match(/\d{1,2}:\d{2}/)?.[0] || "";
                     const pista = bloque.substring(0, 2).trim();
                     const estado = bloque.includes('Cerrada') ? 'Cerrada' : 'Abierta';
                     
-                    // 2. Extraer solo nombres ignorando líneas técnicas
                     const lineas = bloque.split('\n')
                         .map(l => l.trim())
                         .filter(l => l.length > 3 && !/[{;=><]/.test(l) && !/Cerrada|Niveles|Abierta|Eq\./i.test(l));
@@ -56,16 +55,22 @@
 
                     const generarJugador = (i) => {
                         const nombre = nombres[i] || "Disponible";
-                        // Usamos la imagen por defecto si la real falla
-                        return `<div class="jugador-fila"><img src="${DEFAULT_IMG}" class="avatar" onerror="this.src='${DEFAULT_IMG}'"> ${nombre}</div>`;
+                        let imgObj = imagenes[i + (idx * 4)];
+                        let src = imgObj ? imgObj.getAttribute('src') : null;
+                        
+                        // Forzamos ruta absoluta
+                        if (src && !src.startsWith('http')) {
+                            src = 'https://www.padelalborayaindoor.com/' + src.replace(/^\/+/, '');
+                        }
+
+                        return src ? 
+                            `<div class="jugador-fila"><img src="${src}" class="avatar" onerror="this.onerror=null; this.style.display='none';"> ${nombre}</div>` : 
+                            `<div class="jugador-fila"><div class="avatar"></div> ${nombre}</div>`;
                     };
 
                     htmlResultado += `
                         <div class="partida-card">
-                            <div class="info-header">
-                                <span>${hora} - Pista ${pista}</span>
-                                <span class="estado-badge">${estado}</span>
-                            </div>
+                            <div class="info-header"><span>${hora} - Pista ${pista}</span><span class="estado-badge">${estado}</span></div>
                             <div class="vs-grid">
                                 <div class="equipo">${generarJugador(0)}${generarJugador(1)}</div>
                                 <div class="vs-label">VS</div>
@@ -73,8 +78,8 @@
                             </div>
                         </div>`;
                 });
-                document.getElementById('resultado').innerHTML = htmlResultado;
-            } catch (e) { document.getElementById('resultado').innerHTML = "Error al cargar los datos."; }
+                container.innerHTML = htmlResultado || "No hay partidas.";
+            } catch (e) { container.innerHTML = "Error al conectar."; }
         }
         document.addEventListener('DOMContentLoaded', cargarPartidas);
     </script>
