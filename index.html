@@ -2,19 +2,20 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>deploy new</title>
+    <title>Partidas - Padel Alboraya</title>
     <style>
-        body { font-family: sans-serif; background: #f0f7f0; padding: 20px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f4; padding: 20px; }
         .titulo { color: #2e7d32; text-align: center; }
-        .card { background: #fff; border: 2px solid #2e7d32; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
-        .pista { font-weight: bold; color: #1b5e20; border-bottom: 1px solid #c8e6c9; margin-bottom: 10px; padding-bottom: 5px; }
-        .jugador-contenedor { display: flex; align-items: center; margin: 5px 0; }
-        .fotoParticipante { width: 30px; height: 30px; border-radius: 50%; margin-right: 10px; object-fit: cover; background: #ddd; }
+        .card { background: #fff; border-left: 5px solid #2e7d32; padding: 15px; margin-bottom: 15px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .pista { font-weight: bold; color: #1b5e20; font-size: 1.1em; margin-bottom: 10px; border-bottom: 1px solid #e0e0e0; padding-bottom: 5px; }
+        .jugador-contenedor { display: flex; align-items: center; margin: 8px 0; }
+        .fotoParticipante { width: 40px; height: 40px; border-radius: 50%; margin-right: 12px; object-fit: cover; background: #eee; border: 1px solid #ccc; }
+        .jugador { font-size: 0.95em; color: #333; }
     </style>
 </head>
 <body>
     <h1 class="titulo">Partidas</h1>
-    <div id="app">Cargando...</div>
+    <div id="app">Cargando partidas...</div>
 
     <script>
         fetch('/api/proxy')
@@ -24,40 +25,51 @@
                 const output = document.getElementById('app');
                 let htmlResultado = '';
                 
-                // Buscamos los bloques de partida (ajusta este selector si es necesario)
-                const bloques = doc.querySelectorAll('tr, div[class*="grid"]');
+                // Ajusta este selector según la estructura real que devuelve el proxy
+                const filas = doc.querySelectorAll('tr, div.item-partida, div[class*="grid"]');
                 
-                bloques.forEach(bloque => {
-                    const texto = bloque.innerText.trim();
+                filas.forEach(fila => {
+                    const texto = fila.innerText.trim();
+                    // Filtramos solo bloques que tengan Pista y hora
                     if (texto.includes('Pista') && /\d{1,2}:\d{2}/.test(texto)) {
                         
-                        // Extraemos los jugadores y sus imágenes
-                        const lineas = texto.split('\n').filter(l => l.trim().length > 3);
-                        const imagenes = bloque.querySelectorAll('.fotoParticipante');
+                        const jugadores = fila.querySelectorAll('.nombre-jugador, span:not([class]), div:not([class])'); // Ajusta según la clase real del nombre
+                        const imagenes = fila.querySelectorAll('img[src*="foto"]'); 
                         
                         htmlResultado += `<div class="card">
-                            <div class="pista">${lineas[0]}</div>`;
+                            <div class="pista">${texto.split('\n')[0]}</div>`;
                             
-                        // Iteramos sobre las líneas de jugadores
-                        lineas.slice(1).forEach((nombre, index) => {
-                            const img = imagenes[index] ? imagenes[index].getAttribute('src') : '';
-                            const srcCompleto = img ? (img.startsWith('http') ? img : 'https://www.padelalborayaindoor.com/' + img) : '';
-                            
-                            htmlResultado += `
-                                <div class="jugador-contenedor">
-                                    ${srcCompleto ? `<img src="${srcCompleto}" class="fotoParticipante" onerror="this.style.display='none'">` : ''}
-                                    <div class="jugador">${nombre}</div>
-                                </div>`;
-                        });
+                        // Intentamos emparejar imágenes con texto si existen
+                        // Si la web original pone la imagen antes del nombre, buscaremos el contenedor padre
+                        const items = fila.querySelectorAll('.jugador-contenedor-original, .usuario, tr'); 
+                        
+                        // Si no hay clases específicas, recorremos las imágenes encontradas
+                        if(imagenes.length > 0) {
+                            imagenes.forEach(img => {
+                                const src = img.getAttribute('src');
+                                const urlCompleta = src.startsWith('http') ? src : 'https://www.padelalborayaindoor.com/' + src;
+                                // Obtenemos el texto adyacente a la imagen (el nombre)
+                                const nombre = img.parentElement.innerText.trim() || "Jugador";
+                                
+                                htmlResultado += `
+                                    <div class="jugador-contenedor">
+                                        <img src="${urlCompleta}" class="fotoParticipante" onerror="this.style.display='none'">
+                                        <div class="jugador">${nombre}</div>
+                                    </div>`;
+                            });
+                        } else {
+                            htmlResultado += `<div>Sin jugadores visibles</div>`;
+                        }
                         
                         htmlResultado += `</div>`;
                     }
                 });
 
-                output.innerHTML = htmlResultado || "No hay partidas visibles.";
+                output.innerHTML = htmlResultado || "No se encontraron partidas con imágenes.";
             })
-            .catch(() => {
-                document.getElementById('app').innerHTML = "Error al conectar.";
+            .catch(err => {
+                console.error(err);
+                document.getElementById('app').innerHTML = "Error al conectar con el servidor.";
             });
     </script>
 </body>
